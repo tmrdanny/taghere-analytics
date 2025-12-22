@@ -29,8 +29,11 @@ export async function aggregateAndCache(mode: 'full' | 'incremental' = 'incremen
   const endDate = new Date();
 
   if (mode === 'full') {
-    // Full aggregation: get all data
-    startDate = new Date('2023-01-01'); // Adjust based on your data
+    // Full aggregation: limit to 90 days for memory efficiency on free tier
+    // For serverless/free plans, we can't load all historical data
+    const fullDays = parseInt(process.env.CACHE_FULL_DAYS || '90', 10);
+    startDate = subDays(endDate, fullDays);
+    console.log(`[Cache] Full mode limited to ${fullDays} days for memory efficiency`);
   } else {
     // Incremental: last N days
     startDate = subDays(endDate, days);
