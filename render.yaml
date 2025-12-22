@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: taghere-analytics
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    disk:
+      name: analytics-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SQLITE_DB_PATH
+        value: /data/cache.db
+      - key: CACHE_AUTO_REFRESH
+        value: true
+      - key: CACHE_INCREMENTAL_DAYS
+        value: 7
+      # MongoDB configuration - add these in Render Dashboard as secret
+      # MONGODB_URI
+      # MONGODB_DB_NAME
+      # MONGODB_CERT_PATH (use Secret Files feature)
+      # CACHE_REFRESH_TOKEN
