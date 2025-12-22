@@ -15,7 +15,7 @@ import { MetricsFilter, DashboardKPI } from '../types/metrics';
  * Validate and limit date range to prevent excessive queries
  */
 function validateDateRange(startDate: Date, endDate: Date): void {
-  const maxDays = parseInt(process.env.MAX_DATE_RANGE_DAYS || '90', 10);
+  const maxDays = parseInt(process.env.MAX_DATE_RANGE_DAYS || '730', 10);
   const daysDiff = Math.ceil(
     (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
   );

@@ -29,11 +29,11 @@ export async function aggregateAndCache(mode: 'full' | 'incremental' = 'incremen
   const endDate = new Date();
 
   if (mode === 'full') {
-    // Full aggregation: limit to 90 days for memory efficiency on free tier
-    // For serverless/free plans, we can't load all historical data
-    const fullDays = parseInt(process.env.CACHE_FULL_DAYS || '90', 10);
+    // Full aggregation: load all available historical data
+    // Default: 2 years of data (730 days) for balanced memory usage
+    const fullDays = parseInt(process.env.CACHE_FULL_DAYS || '730', 10);
     startDate = subDays(endDate, fullDays);
-    console.log(`[Cache] Full mode limited to ${fullDays} days for memory efficiency`);
+    console.log(`[Cache] Full mode - loading last ${fullDays} days of historical data`);
   } else {
     // Incremental: last N days
     startDate = subDays(endDate, days);
