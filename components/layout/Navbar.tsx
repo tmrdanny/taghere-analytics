@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BarChart3, Search, Home, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
@@ -78,7 +77,6 @@ export function Navbar() {
           <span className="text-xs text-muted-foreground hidden md:inline-block">
             B2B Store Analytics
           </span>
-          <ThemeToggle />
           <Button
             variant="ghost"
             size="sm"
