@@ -80,16 +80,33 @@ export default function Dashboard() {
       }
 
       const response = await fetch(url);
-      const result = await response.json();
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error (${response.status}): ${errorText || 'Unknown error'}`);
+      }
+
+      const text = await response.text();
+      if (!text) {
+        throw new Error('Empty response from server');
+      }
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+      }
 
       if (result.success) {
         setData(result.data);
         setCached(result.cached || false);
       } else {
-        setError(result.error || 'Failed to load dashboard');
+        setError(result.error || result.hint || 'Failed to load dashboard');
       }
     } catch (err: any) {
-      setError(err.message);
+      console.error('Dashboard fetch error:', err);
+      setError(err.message || 'Failed to connect to server');
     } finally {
       setLoading(false);
     }
