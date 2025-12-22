@@ -6,21 +6,16 @@ services:
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
-    disk:
-      name: analytics-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
-      - key: SQLITE_DB_PATH
-        value: /data/cache.db
+      # SQLite will use /tmp/cache.db by default in production
+      # No need for SQLITE_DB_PATH unless you have persistent disk
       - key: CACHE_AUTO_REFRESH
-        value: true
+        value: "true"
       - key: CACHE_INCREMENTAL_DAYS
-        value: 7
+        value: "7"
       # MongoDB configuration - add these in Render Dashboard as secret
       # MONGODB_URI
       # MONGODB_DB_NAME
-      # MONGODB_CERT_PATH (use Secret Files feature)
-      # CACHE_REFRESH_TOKEN
+      # MONGODB_CERT_PATH (use Secret Files feature: /etc/secrets/mongodb-cert.pem)

@@ -14,7 +14,11 @@ let db: Database.Database | null = null;
 export function getDb(): Database.Database {
   if (db) return db;
 
-  const dbPath = process.env.SQLITE_DB_PATH || resolve(process.cwd(), 'data/cache.db');
+  // Use /tmp for serverless environments (Render, Vercel, etc.)
+  const defaultPath = process.env.NODE_ENV === 'production'
+    ? '/tmp/cache.db'
+    : resolve(process.cwd(), 'data/cache.db');
+  const dbPath = process.env.SQLITE_DB_PATH || defaultPath;
 
   // Ensure directory exists
   const fs = require('fs');
