@@ -1,8 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { X, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { StoreGroup } from '@/lib/types/store-groups';
 
 interface SavedGroupsTagsProps {
@@ -20,6 +31,20 @@ export function SavedGroupsTags({
   onGroupDelete,
   onGroupEdit,
 }: SavedGroupsTagsProps) {
+  const [deleteConfirm, setDeleteConfirm] = useState<StoreGroup | null>(null);
+
+  const handleDeleteClick = (e: React.MouseEvent, group: StoreGroup) => {
+    e.stopPropagation();
+    setDeleteConfirm(group);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirm) {
+      onGroupDelete(deleteConfirm.id);
+      setDeleteConfirm(null);
+    }
+  };
+
   if (groups.length === 0) {
     return (
       <div className="text-sm text-muted-foreground">
@@ -63,10 +88,7 @@ export function SavedGroupsTags({
               </button>
             )}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onGroupDelete(group.id);
-              }}
+              onClick={(e) => handleDeleteClick(e, group)}
               className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
               title="그룹 삭제"
             >
@@ -75,6 +97,26 @@ export function SavedGroupsTags({
           </div>
         );
       })}
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>그룹을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &apos;{deleteConfirm?.name}&apos; 그룹이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
