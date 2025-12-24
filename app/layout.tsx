@@ -28,8 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased text-neutral-900 dark:text-neutral-50`}
       >
+        <div className="aurora-bg" aria-hidden="true" />
         <Providers>
           <AuthLayout>
             <Navbar />

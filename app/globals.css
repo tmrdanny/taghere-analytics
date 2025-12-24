@@ -82,34 +82,34 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: transparent;
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.12 0 0 / 70%);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.15 0 0 / 95%);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: oklch(0.2 0 0 / 60%);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: oklch(0.2 0 0 / 50%);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: oklch(0.2 0 0 / 60%);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 10%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: oklch(0.12 0 0 / 80%);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent: oklch(0.2 0 0 / 60%);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
@@ -124,14 +124,86 @@
   }
 }
 
+/* Card glass effect for dark mode */
+.dark [data-slot="card"],
+.dark .card,
+.dark [class*="Card"] {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
 @layer utilities {
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
     20%, 40%, 60%, 80% { transform: translateX(5px); }
   }
-  
+
   .animate-shake {
     animation: shake 0.5s ease-in-out;
+  }
+
+  @keyframes aurora {
+    from {
+      background-position: 50% 50%, 50% 50%;
+    }
+    to {
+      background-position: 350% 50%, 350% 50%;
+    }
+  }
+
+  .aurora-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background-color: #050505;
+  }
+
+  .aurora-bg::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    opacity: 0.4;
+    background-image:
+      repeating-linear-gradient(
+        100deg,
+        transparent 0%,
+        transparent 7%,
+        rgba(var(--aurora-blue), 0.15) 10%,
+        rgba(var(--aurora-purple), 0.15) 12%,
+        rgba(var(--aurora-cyan), 0.15) 16%,
+        transparent 18%
+      ),
+      repeating-linear-gradient(
+        100deg,
+        rgba(var(--aurora-blue), 0.08) 0%,
+        rgba(var(--aurora-indigo), 0.08) 7%,
+        rgba(var(--aurora-purple), 0.08) 14%,
+        rgba(var(--aurora-cyan), 0.08) 21%,
+        transparent 25%
+      );
+    background-size: 300% 200%, 200% 100%;
+    animation: aurora 60s linear infinite;
+    filter: blur(30px) saturate(150%);
+    mix-blend-mode: screen;
+  }
+
+  .aurora-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse 80% 50% at 50% 0%,
+      rgba(var(--aurora-purple), 0.12),
+      transparent 50%
+    );
+  }
+
+  :root {
+    --aurora-blue: 59, 130, 246;
+    --aurora-purple: 147, 51, 234;
+    --aurora-indigo: 99, 102, 241;
+    --aurora-cyan: 34, 211, 238;
   }
 }

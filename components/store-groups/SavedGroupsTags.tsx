@@ -1,6 +1,6 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StoreGroup } from '@/lib/types/store-groups';
@@ -10,6 +10,7 @@ interface SavedGroupsTagsProps {
   selectedGroupId?: string;
   onGroupClick: (group: StoreGroup) => void;
   onGroupDelete: (groupId: string) => void;
+  onGroupEdit?: (group: StoreGroup) => void;
 }
 
 export function SavedGroupsTags({
@@ -17,6 +18,7 @@ export function SavedGroupsTags({
   selectedGroupId,
   onGroupClick,
   onGroupDelete,
+  onGroupEdit,
 }: SavedGroupsTagsProps) {
   if (groups.length === 0) {
     return (
@@ -48,12 +50,25 @@ export function SavedGroupsTags({
             <span className="text-xs opacity-70">
               ({group.storeIds.length})
             </span>
+            {onGroupEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onGroupEdit(group);
+                }}
+                className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary"
+                title="그룹 수정"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onGroupDelete(group.id);
               }}
-              className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
+              title="그룹 삭제"
             >
               <X className="h-3 w-3" />
             </button>

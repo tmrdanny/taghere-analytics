@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useStoreGroups } from '@/lib/hooks/useStoreGroups';
 import { StoreSearchInput } from './StoreSearchInput';
 import { GroupCreateDialog } from './GroupCreateDialog';
+import { GroupEditDialog } from './GroupEditDialog';
 import { SavedGroupsTags } from './SavedGroupsTags';
 import { StoreGroup } from '@/lib/types/store-groups';
 
@@ -16,9 +17,11 @@ interface StoreGroupsManagerProps {
 }
 
 export function StoreGroupsManager({ selectedGroupId, onGroupSelected }: StoreGroupsManagerProps) {
-  const { groups, createGroup, deleteGroup, isLoaded } = useStoreGroups();
+  const { groups, createGroup, updateGroup, deleteGroup, isLoaded } = useStoreGroups();
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<StoreGroup | null>(null);
 
   const handleCreateGroup = (name: string) => {
     const newGroup = createGroup(name, selectedStoreIds);
@@ -40,6 +43,20 @@ export function StoreGroupsManager({ selectedGroupId, onGroupSelected }: StoreGr
       onGroupSelected(null);
     }
     deleteGroup(groupId);
+  };
+
+  const handleEditGroup = (group: StoreGroup) => {
+    setEditingGroup(group);
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateGroup = (id: string, name: string, storeIds: string[]) => {
+    updateGroup(id, { name, storeIds });
+    // If this is the selected group, update the selection with new data
+    if (selectedGroupId === id) {
+      const updatedGroup = { ...editingGroup!, name, storeIds, updatedAt: new Date().toISOString() };
+      onGroupSelected(updatedGroup);
+    }
   };
 
   if (!isLoaded) {
@@ -87,6 +104,7 @@ export function StoreGroupsManager({ selectedGroupId, onGroupSelected }: StoreGr
               selectedGroupId={selectedGroupId}
               onGroupClick={handleGroupClick}
               onGroupDelete={handleDeleteGroup}
+              onGroupEdit={handleEditGroup}
             />
           </div>
         )}
@@ -97,6 +115,17 @@ export function StoreGroupsManager({ selectedGroupId, onGroupSelected }: StoreGr
           storeIds={selectedStoreIds}
           storeCount={selectedStoreIds.length}
           onCreateGroup={handleCreateGroup}
+          existingGroupNames={groups.map(g => g.name)}
+        />
+
+        <GroupEditDialog
+          open={showEditDialog}
+          onClose={() => {
+            setShowEditDialog(false);
+            setEditingGroup(null);
+          }}
+          group={editingGroup}
+          onUpdateGroup={handleUpdateGroup}
           existingGroupNames={groups.map(g => g.name)}
         />
       </CardContent>
