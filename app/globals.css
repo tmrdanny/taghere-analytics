@@ -225,9 +225,9 @@
   }
 
   :root {
-    --aurora-blue: 40, 80, 160;
-    --aurora-purple: 80, 40, 120;
-    --aurora-indigo: 60, 60, 140;
-    --aurora-cyan: 30, 100, 120;
+    --aurora-blue: 59, 130, 246;
+    --aurora-purple: 139, 92, 246;
+    --aurora-indigo: 99, 102, 241;
+    --aurora-cyan: 34, 211, 238;
   }
 }
