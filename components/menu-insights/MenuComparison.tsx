@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 import { Search, X, Plus } from 'lucide-react';
+import { StoreGroup } from '@/lib/types/store-groups';
 
 interface MenuComparisonProps {
   startDate: Date;
   endDate: Date;
   storeIds?: string[];
+  selectedGroup?: StoreGroup | null;
 }
 
 interface MenuData {
@@ -24,6 +26,13 @@ interface ComparisonData {
   name: string;
   value: number;
   [key: string]: any;
+}
+
+interface StoreMenuData {
+  storeId: string;
+  storeName: string;
+  menus: MenuData[];
+  comparisonData: ComparisonData[];
 }
 
 const COLORS = [
@@ -43,6 +52,7 @@ export function MenuComparison({
   startDate,
   endDate,
   storeIds,
+  selectedGroup,
 }: MenuComparisonProps) {
   const [menuSearchTerm, setMenuSearchTerm] = useState('');
   const [menuSearchResults, setMenuSearchResults] = useState<MenuData[]>([]);
@@ -50,11 +60,38 @@ export function MenuComparison({
   const [menuLoading, setMenuLoading] = useState(false);
   const [menuError, setMenuError] = useState<string | null>(null);
   const [showMenuSearch, setShowMenuSearch] = useState(false);
-
-  const [comparisonData, setComparisonData] = useState<ComparisonData[]>([]);
+  const [storeMenuDataList, setStoreMenuDataList] = useState<StoreMenuData[]>([]);
+  const [isLoadingStoreData, setIsLoadingStoreData] = useState(false);
+  const [storeNamesMap, setStoreNamesMap] = useState<Record<string, string>>({});
 
   // Check if store is selected
   const hasSelectedStores = storeIds && storeIds.length > 0;
+
+  // Fetch store names when storeIds change
+  useEffect(() => {
+    if (!hasSelectedStores) {
+      setStoreNamesMap({});
+      return;
+    }
+
+    const fetchStoreNames = async () => {
+      try {
+        const params = new URLSearchParams({
+          storeIds: storeIds!.join(','),
+        });
+        const response = await fetch(`/api/stores/names?${params}`);
+        const result = await response.json();
+
+        if (result.success && result.storeNames) {
+          setStoreNamesMap(result.storeNames);
+        }
+      } catch (error) {
+        console.error('Failed to fetch store names:', error);
+      }
+    };
+
+    fetchStoreNames();
+  }, [storeIds, hasSelectedStores]);
 
   // Search menus
   useEffect(() => {
@@ -102,18 +139,71 @@ export function MenuComparison({
     searchMenus();
   }, [menuSearchTerm, hasSelectedStores, storeIds, startDate, endDate]);
 
-  // Update comparison chart when selected menus change
+  // Fetch per-store menu data for selected menus
   useEffect(() => {
-    if (selectedMenus.length > 0) {
-      const data = selectedMenus.map((menu) => ({
-        name: menu.menuName,
-        value: menu.quantity,
-      }));
-      setComparisonData(data);
-    } else {
-      setComparisonData([]);
+    if (!hasSelectedStores || selectedMenus.length === 0) {
+      setStoreMenuDataList([]);
+      return;
     }
-  }, [selectedMenus]);
+
+    const fetchPerStoreData = async () => {
+      setIsLoadingStoreData(true);
+      try {
+        // Fetch menu rankings for each store separately
+        const storeDataPromises = storeIds!.map(async (storeId) => {
+          const params = new URLSearchParams({
+            type: 'rankings',
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            storeIds: storeId,
+            limit: '100',
+          });
+
+          const response = await fetch(`/api/menu-insights?${params}`);
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            // Filter to selected menus only
+            const filteredMenus = result.data.topByQuantity
+              .filter((menu: any) =>
+                selectedMenus.some((m) => m.menuName === menu.menuName)
+              )
+              .map((menu: any) => ({
+                menuName: menu.menuName,
+                quantity: menu.quantity,
+                revenue: menu.revenue,
+              }));
+
+            // Create comparison data for this store
+            const comparisonData = filteredMenus.map((menu: MenuData) => ({
+              name: menu.menuName,
+              value: menu.quantity,
+            }));
+
+            return {
+              storeId,
+              storeName: storeNamesMap[storeId] || storeId,
+              menus: filteredMenus,
+              comparisonData,
+            };
+          }
+          return null;
+        });
+
+        const results = await Promise.all(storeDataPromises);
+        const filteredResults = results.filter(
+          (r): r is StoreMenuData => r !== null
+        );
+        setStoreMenuDataList(filteredResults);
+      } catch (error) {
+        console.error('Failed to fetch per-store data:', error);
+      } finally {
+        setIsLoadingStoreData(false);
+      }
+    };
+
+    fetchPerStoreData();
+  }, [selectedMenus, storeIds, startDate, endDate, hasSelectedStores, storeNamesMap]);
 
   const handleSelectMenu = (menu: MenuData) => {
     // Check if menu is already selected
@@ -127,8 +217,6 @@ export function MenuComparison({
   const handleRemoveMenu = (menuName: string) => {
     setSelectedMenus(selectedMenus.filter((m) => m.menuName !== menuName));
   };
-
-  const totalQuantity = selectedMenus.reduce((sum, m) => sum + m.quantity, 0);
 
   return (
     <Card>
@@ -238,100 +326,140 @@ export function MenuComparison({
               )}
             </div>
 
-            {/* Pie Chart */}
-            {selectedMenus.length > 0 && comparisonData.length > 0 && (
-              <div className="space-y-4">
+            {/* Pie Charts Grid */}
+            {selectedMenus.length > 0 && storeMenuDataList.length > 0 && (
+              <div className="space-y-6">
                 <div className="border-t pt-4">
-                  <h3 className="text-sm font-medium mb-4">판매량 비교</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={comparisonData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => {
-                          const percent = ((value / totalQuantity) * 100).toFixed(1);
-                          return `${name} (${value.toLocaleString()}, ${percent}%)`;
-                        }}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {comparisonData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: any) => {
-                          if (typeof value === 'number') {
-                            const percent = ((value / totalQuantity) * 100).toFixed(1);
-                            return [`${value.toLocaleString()} 개 (${percent}%)`, '판매량'];
-                          }
-                          return [value, '판매량'];
-                        }}
-                      />
-                      <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <h3 className="text-sm font-medium mb-6">매장별 판매량 비교</h3>
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {storeMenuDataList.map((storeData) => {
+                      const storeTotal = storeData.menus.reduce(
+                        (sum, m) => sum + m.quantity,
+                        0
+                      );
 
-                  {/* Summary Table */}
-                  <div className="mt-6 overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-4 font-medium">메뉴명</th>
-                          <th className="text-right py-2 px-4 font-medium">판매량</th>
-                          <th className="text-right py-2 px-4 font-medium">비율</th>
-                          <th className="text-right py-2 px-4 font-medium">매출</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedMenus
-                          .sort((a, b) => b.quantity - a.quantity)
-                          .map((menu) => {
-                            const percent = (
-                              (menu.quantity / totalQuantity) *
-                              100
-                            ).toFixed(1);
-                            return (
-                              <tr
-                                key={menu.menuName}
-                                className="border-b hover:bg-muted/50"
-                              >
-                                <td className="py-2 px-4">{menu.menuName}</td>
-                                <td className="py-2 px-4 text-right font-medium">
-                                  {menu.quantity.toLocaleString()}
-                                </td>
-                                <td className="py-2 px-4 text-right">
-                                  {percent}%
-                                </td>
-                                <td className="py-2 px-4 text-right">
-                                  ₩{menu.revenue.toLocaleString()}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                      </tbody>
-                      <tfoot>
-                        <tr className="font-medium bg-muted/50">
-                          <td className="py-2 px-4">합계</td>
-                          <td className="py-2 px-4 text-right">
-                            {totalQuantity.toLocaleString()}
-                          </td>
-                          <td className="py-2 px-4 text-right">100%</td>
-                          <td className="py-2 px-4 text-right">
-                            ₩
-                            {selectedMenus
-                              .reduce((sum, m) => sum + m.revenue, 0)
-                              .toLocaleString()}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                      return (
+                        <Card key={storeData.storeId}>
+                          <CardHeader>
+                            <CardTitle className="text-base">
+                              {storeData.storeName}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {storeData.comparisonData.length > 0 ? (
+                              <>
+                                {/* Pie Chart */}
+                                <ResponsiveContainer width="100%" height={250}>
+                                  <PieChart>
+                                    <Pie
+                                      data={storeData.comparisonData}
+                                      cx="50%"
+                                      cy="50%"
+                                      labelLine={false}
+                                      label={({ name, value }) => {
+                                        const percent = (
+                                          (value / storeTotal) *
+                                          100
+                                        ).toFixed(1);
+                                        return `${name} (${percent}%)`;
+                                      }}
+                                      outerRadius={70}
+                                      fill="#8884d8"
+                                      dataKey="value"
+                                    >
+                                      {storeData.comparisonData.map(
+                                        (entry, index) => (
+                                          <Cell
+                                            key={`cell-${index}`}
+                                            fill={COLORS[index % COLORS.length]}
+                                          />
+                                        )
+                                      )}
+                                    </Pie>
+                                    <Tooltip
+                                      formatter={(value: any) => {
+                                        if (typeof value === 'number') {
+                                          const percent = (
+                                            (value / storeTotal) *
+                                            100
+                                          ).toFixed(1);
+                                          return [
+                                            `${value.toLocaleString()} 개 (${percent}%)`,
+                                            '판매량',
+                                          ];
+                                        }
+                                        return [value, '판매량'];
+                                      }}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                  </PieChart>
+                                </ResponsiveContainer>
+
+                                {/* Summary Table */}
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="border-b">
+                                        <th className="text-left py-2 px-2 font-medium">
+                                          메뉴
+                                        </th>
+                                        <th className="text-right py-2 px-2 font-medium">
+                                          판매량
+                                        </th>
+                                        <th className="text-right py-2 px-2 font-medium">
+                                          %
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {storeData.menus
+                                        .sort((a, b) => b.quantity - a.quantity)
+                                        .map((menu) => {
+                                          const percent = (
+                                            (menu.quantity / storeTotal) *
+                                            100
+                                          ).toFixed(1);
+                                          return (
+                                            <tr
+                                              key={menu.menuName}
+                                              className="border-b hover:bg-muted/50"
+                                            >
+                                              <td className="py-2 px-2 text-xs">
+                                                {menu.menuName}
+                                              </td>
+                                              <td className="py-2 px-2 text-right font-medium">
+                                                {menu.quantity.toLocaleString()}
+                                              </td>
+                                              <td className="py-2 px-2 text-right">
+                                                {percent}%
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr className="font-medium bg-muted/50">
+                                        <td className="py-2 px-2 text-xs">합계</td>
+                                        <td className="py-2 px-2 text-right">
+                                          {storeTotal.toLocaleString()}
+                                        </td>
+                                        <td className="py-2 px-2 text-right">
+                                          100%
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-center py-6 text-sm text-muted-foreground">
+                                선택된 메뉴의 판매 데이터가 없습니다.
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

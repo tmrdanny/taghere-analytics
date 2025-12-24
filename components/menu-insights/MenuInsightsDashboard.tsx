@@ -10,17 +10,20 @@ import { RevenueContribution } from './RevenueContribution';
 import { MenuTrendAnalysis } from './MenuTrendAnalysis';
 import { CrossSellingMatrix } from './CrossSellingMatrix';
 import { MenuComparison } from './MenuComparison';
+import { StoreGroup } from '@/lib/types/store-groups';
 
 interface MenuInsightsDashboardProps {
   startDate: Date;
   endDate: Date;
   storeIds?: string[];
+  selectedGroup?: StoreGroup | null;
 }
 
 export function MenuInsightsDashboard({
   startDate,
   endDate,
   storeIds,
+  selectedGroup,
 }: MenuInsightsDashboardProps) {
   const [activeTab, setActiveTab] = useState('rankings');
   const [menuSearchTerm, setMenuSearchTerm] = useState('');
@@ -96,6 +99,7 @@ export function MenuInsightsDashboard({
               startDate={startDate}
               endDate={endDate}
               storeIds={storeIds}
+              selectedGroup={selectedGroup}
             />
           </TabsContent>
         </Tabs>

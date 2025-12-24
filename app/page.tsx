@@ -613,6 +613,7 @@ export default function Dashboard() {
               : getDateRangeFromPreset(datePreset).endDate
           }
           storeIds={selectedGroup?.storeIds}
+          selectedGroup={selectedGroup}
         />
 
         {/* Data Sync Button */}

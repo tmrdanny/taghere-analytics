@@ -284,6 +284,34 @@ export function queryHourlyStoreMetrics(startDate: string, endDate: string, stor
 }
 
 /**
+ * Get store names by store IDs
+ * Returns a Map of storeId -> storeName
+ */
+export function getStoreNames(storeIds: string[]): Map<string, string> {
+  const db = getDb();
+  const storeNames = new Map<string, string>();
+
+  if (storeIds.length === 0) return storeNames;
+
+  const placeholders = storeIds.map(() => '?').join(',');
+  const sql = `
+    SELECT DISTINCT storeId, storeName
+    FROM metrics_daily_store
+    WHERE storeId IN (${placeholders})
+  `;
+
+  const rows = db.prepare(sql).all(...storeIds) as Array<{ storeId: string; storeName: string }>;
+
+  for (const row of rows) {
+    if (row.storeName && row.storeName !== 'Unknown Store') {
+      storeNames.set(row.storeId, row.storeName);
+    }
+  }
+
+  return storeNames;
+}
+
+/**
  * Get cache statistics
  */
 export function getCacheStats() {
