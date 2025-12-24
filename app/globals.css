@@ -132,6 +132,13 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
+/* Dialog/Modal should be fully opaque for readability */
+.dark [role="dialog"],
+.dark [data-slot="dialog-content"] {
+  background-color: #18181b !important;
+  backdrop-filter: none !important;
+}
+
 @layer utilities {
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
