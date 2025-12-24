@@ -208,7 +208,7 @@
         transparent 25%
       );
     background-size: 300% 200%, 200% 100%;
-    animation: aurora 60s linear infinite;
+    animation: aurora 180s linear infinite;
     filter: blur(80px) saturate(120%);
     mix-blend-mode: screen;
   }
