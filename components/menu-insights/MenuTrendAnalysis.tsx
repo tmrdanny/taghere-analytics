@@ -31,10 +31,12 @@ const COLORS = [
 export function MenuTrendAnalysis({ startDate, endDate, storeIds, menuSearchTerm }: MenuTrendAnalysisProps) {
   const [data, setData] = useState<{ menuTrends: MenuTrend[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({
           type: 'trends',
@@ -56,8 +58,13 @@ export function MenuTrendAnalysis({ startDate, endDate, storeIds, menuSearchTerm
 
         if (result.success) {
           setData(result.data);
+        } else {
+          setError(result.error || 'Failed to fetch data');
+          console.error('Menu trends error:', result.error);
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        setError(errorMsg);
         console.error('Failed to fetch menu trends:', error);
       } finally {
         setLoading(false);

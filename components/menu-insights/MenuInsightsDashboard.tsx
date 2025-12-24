@@ -9,6 +9,7 @@ import { MenuRankings } from './MenuRankings';
 import { RevenueContribution } from './RevenueContribution';
 import { MenuTrendAnalysis } from './MenuTrendAnalysis';
 import { CrossSellingMatrix } from './CrossSellingMatrix';
+import { MenuComparison } from './MenuComparison';
 
 interface MenuInsightsDashboardProps {
   startDate: Date;
@@ -47,11 +48,12 @@ export function MenuInsightsDashboard({
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="rankings">순위</TabsTrigger>
             <TabsTrigger value="contribution">기여도</TabsTrigger>
             <TabsTrigger value="trends">트렌드</TabsTrigger>
             <TabsTrigger value="cross-selling">교차판매</TabsTrigger>
+            <TabsTrigger value="comparison">판매량 비교</TabsTrigger>
           </TabsList>
 
           <TabsContent value="rankings" className="mt-4">
@@ -83,6 +85,14 @@ export function MenuInsightsDashboard({
 
           <TabsContent value="cross-selling" className="mt-4">
             <CrossSellingMatrix
+              startDate={startDate}
+              endDate={endDate}
+              storeIds={storeIds}
+            />
+          </TabsContent>
+
+          <TabsContent value="comparison" className="mt-4">
+            <MenuComparison
               startDate={startDate}
               endDate={endDate}
               storeIds={storeIds}

@@ -18,6 +18,14 @@ export async function GET(request: Request) {
     const menuName = searchParams.get('menuName') || undefined;
     const limitParam = searchParams.get('limit');
 
+    console.log('[menu-insights API]', {
+      type,
+      startDateParam,
+      endDateParam,
+      storeIdsParam,
+      menuName,
+    });
+
     // Validate required parameters
     if (!type) {
       return NextResponse.json(

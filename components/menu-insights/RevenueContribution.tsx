@@ -24,10 +24,12 @@ interface MenuContribution {
 export function RevenueContribution({ startDate, endDate, storeIds, menuSearchTerm }: RevenueContributionProps) {
   const [data, setData] = useState<{ menuContributions: MenuContribution[]; totalRevenue: number; totalQuantity: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({
           type: 'contribution',
@@ -48,8 +50,13 @@ export function RevenueContribution({ startDate, endDate, storeIds, menuSearchTe
 
         if (result.success) {
           setData(result.data);
+        } else {
+          setError(result.error || 'Failed to fetch data');
+          console.error('Revenue contribution error:', result.error);
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        setError(errorMsg);
         console.error('Failed to fetch revenue contribution:', error);
       } finally {
         setLoading(false);

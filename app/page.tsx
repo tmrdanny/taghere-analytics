@@ -13,6 +13,7 @@ import { StoreGroupsManager } from '@/components/store-groups/StoreGroupsManager
 import { StoreGroup } from '@/lib/types/store-groups';
 import { MenuInsightsDashboard } from '@/components/menu-insights/MenuInsightsDashboard';
 import { DataSyncButton } from '@/components/DataSyncButton';
+import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths, subYears } from 'date-fns';
 
 interface DashboardData {
   totalGMV: number;
@@ -48,6 +49,35 @@ interface DashboardData {
 }
 
 type DatePreset = 'today' | 'last7days' | 'last30days' | 'last90days' | 'last180days' | 'lastYear' | 'thisMonth' | 'lastMonth' | 'allData' | 'custom';
+
+function getDateRangeFromPreset(preset: DatePreset): { startDate: Date; endDate: Date } {
+  const now = new Date();
+
+  switch (preset) {
+    case 'today':
+      return { startDate: startOfDay(now), endDate: endOfDay(now) };
+    case 'last7days':
+      return { startDate: startOfDay(subDays(now, 6)), endDate: endOfDay(now) };
+    case 'last30days':
+      return { startDate: startOfDay(subDays(now, 29)), endDate: endOfDay(now) };
+    case 'last90days':
+      return { startDate: startOfDay(subDays(now, 89)), endDate: endOfDay(now) };
+    case 'last180days':
+      return { startDate: startOfDay(subDays(now, 179)), endDate: endOfDay(now) };
+    case 'lastYear':
+      return { startDate: startOfDay(subYears(now, 1)), endDate: endOfDay(now) };
+    case 'thisMonth':
+      return { startDate: startOfMonth(now), endDate: endOfDay(now) };
+    case 'lastMonth': {
+      const lastMonth = subMonths(now, 1);
+      return { startDate: startOfMonth(lastMonth), endDate: endOfMonth(lastMonth) };
+    }
+    case 'allData':
+      return { startDate: startOfDay(subYears(now, 10)), endDate: endOfDay(now) };
+    default:
+      return { startDate: startOfDay(subDays(now, 6)), endDate: endOfDay(now) };
+  }
+}
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -572,8 +602,16 @@ export default function Dashboard() {
 
         {/* Menu Insights Dashboard */}
         <MenuInsightsDashboard
-          startDate={dateMode === 'custom' && customStartDate ? customStartDate : new Date(new Date().setDate(new Date().getDate() - 7))}
-          endDate={dateMode === 'custom' && customEndDate ? customEndDate : new Date()}
+          startDate={
+            dateMode === 'custom' && customStartDate
+              ? customStartDate
+              : getDateRangeFromPreset(datePreset).startDate
+          }
+          endDate={
+            dateMode === 'custom' && customEndDate
+              ? customEndDate
+              : getDateRangeFromPreset(datePreset).endDate
+          }
           storeIds={selectedGroup?.storeIds}
         />
 

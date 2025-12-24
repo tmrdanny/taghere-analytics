@@ -1,4 +1,4 @@
-export type MenuInsightType = 'rankings' | 'contribution' | 'trends' | 'cross-selling';
+export type MenuInsightType = 'rankings' | 'contribution' | 'trends' | 'cross-selling' | 'comparison';
 
 export interface MenuInsightFilter {
   startDate: Date;

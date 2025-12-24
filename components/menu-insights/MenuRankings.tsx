@@ -22,10 +22,12 @@ interface MenuRanking {
 export function MenuRankings({ startDate, endDate, storeIds, menuSearchTerm }: MenuRankingsProps) {
   const [data, setData] = useState<{ topByQuantity: MenuRanking[]; topByRevenue: MenuRanking[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({
           type: 'rankings',
@@ -47,8 +49,13 @@ export function MenuRankings({ startDate, endDate, storeIds, menuSearchTerm }: M
 
         if (result.success) {
           setData(result.data);
+        } else {
+          setError(result.error || 'Failed to fetch data');
+          console.error('Menu rankings error:', result.error);
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        setError(errorMsg);
         console.error('Failed to fetch menu rankings:', error);
       } finally {
         setLoading(false);
@@ -78,10 +85,19 @@ export function MenuRankings({ startDate, endDate, storeIds, menuSearchTerm }: M
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-500 font-medium mb-2">데이터를 불러올 수 없습니다.</div>
+        <div className="text-sm text-muted-foreground">{error}</div>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        데이터를 불러올 수 없습니다.
+        데이터가 없습니다.
       </div>
     );
   }

@@ -18,6 +18,14 @@ export async function getMenuRankings(filter: MenuInsightFilter) {
   const startDateStr = format(filter.startDate, 'yyyy-MM-dd');
   const endDateStr = format(filter.endDate, 'yyyy-MM-dd');
 
+  console.log('[getMenuRankings]', {
+    startDate: filter.startDate,
+    endDate: filter.endDate,
+    startDateStr,
+    endDateStr,
+    storeIds: filter.storeIds,
+  });
+
   let whereClause = 'WHERE date >= ? AND date <= ?';
   const params: any[] = [startDateStr, endDateStr];
 
@@ -47,6 +55,11 @@ export async function getMenuRankings(filter: MenuInsightFilter) {
   `;
 
   const topByQuantity = db.prepare(topByQuantityQuery).all([...params, filter.limit || 10]) as MenuRanking[];
+
+  console.log('[getMenuRankings] Results:', {
+    topByQuantityCount: topByQuantity.length,
+    params,
+  });
 
   // Top by revenue
   const topByRevenueQuery = `

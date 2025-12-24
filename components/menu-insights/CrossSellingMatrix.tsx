@@ -22,10 +22,12 @@ interface CrossSellingPair {
 export function CrossSellingMatrix({ startDate, endDate, storeIds }: CrossSellingMatrixProps) {
   const [data, setData] = useState<{ pairs: CrossSellingPair[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({
           type: 'cross-selling',
@@ -43,8 +45,13 @@ export function CrossSellingMatrix({ startDate, endDate, storeIds }: CrossSellin
 
         if (result.success) {
           setData(result.data);
+        } else {
+          setError(result.error || 'Failed to fetch data');
+          console.error('Cross-selling error:', result.error);
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        setError(errorMsg);
         console.error('Failed to fetch cross-selling data:', error);
       } finally {
         setLoading(false);
