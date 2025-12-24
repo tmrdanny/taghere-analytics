@@ -29,6 +29,17 @@ export function MenuRankings({ startDate, endDate, storeIds, menuSearchTerm }: M
       setLoading(true);
       setError(null);
       try {
+        console.log('[MenuRankings] Fetching with dates:', {
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString(),
+        });
+
+        if (!startDate || !endDate) {
+          setError('날짜 범위를 선택해주세요');
+          setLoading(false);
+          return;
+        }
+
         const params = new URLSearchParams({
           type: 'rankings',
           startDate: startDate.toISOString(),
@@ -98,6 +109,17 @@ export function MenuRankings({ startDate, endDate, storeIds, menuSearchTerm }: M
     return (
       <div className="text-center py-12 text-muted-foreground">
         데이터가 없습니다.
+      </div>
+    );
+  }
+
+  const hasData = data.topByQuantity.length > 0 || data.topByRevenue.length > 0;
+
+  if (!hasData) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <p className="mb-2">선택한 기간에 메뉴 데이터가 없습니다.</p>
+        <p className="text-sm">캐시를 새로고침하거나 다른 기간을 선택해주세요.</p>
       </div>
     );
   }
