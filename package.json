@@ -12,7 +12,8 @@
     "setup-indexes": "tsx scripts/run-aggregation.ts setup-indexes",
     "cache:init": "tsx scripts/init-cache.ts",
     "cache:refresh": "tsx scripts/refresh-cache.ts",
-    "cache:status": "tsx scripts/cache-status.ts"
+    "cache:status": "tsx scripts/cache-status.ts",
+    "build-cache": "tsx scripts/build-cache.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
