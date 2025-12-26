@@ -14,7 +14,15 @@ config({ path: resolve(process.cwd(), '.env.local') });
 import { aggregateAndCache } from '../lib/cache/aggregation-cache';
 import { getCacheStats, closeDb } from '../lib/cache/sqlite';
 
-const LOOKBACK_DAYS = parseInt(process.env.CACHE_BUILD_DAYS || '365', 10);
+// Calculate days from 2023-01-01 to today
+function getDaysSince2023(): number {
+  const startDate = new Date('2023-01-01');
+  const today = new Date();
+  const diffTime = today.getTime() - startDate.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+const LOOKBACK_DAYS = getDaysSince2023();
 
 async function buildCache() {
   const startTime = Date.now();
@@ -22,12 +30,12 @@ async function buildCache() {
   console.log('='.repeat(50));
   console.log('[Build Cache] Starting SQLite cache build from MongoDB');
   console.log('='.repeat(50));
-  console.log(`\nLookback Days: ${LOOKBACK_DAYS}`);
+  console.log(`\nLookback Days: ${LOOKBACK_DAYS} (from 2023-01-01)`);
   console.log(`SQLite Path: ${process.env.SQLITE_DB_PATH || 'data/cache.db'}`);
   console.log('');
 
   try {
-    // Build cache with full historical data
+    // Build cache with full historical data from 2023-01-01
     console.log('[Build Cache] Aggregating data from MongoDB...\n');
 
     const stats = await aggregateAndCache('full', LOOKBACK_DAYS);
