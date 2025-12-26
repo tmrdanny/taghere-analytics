@@ -121,9 +121,8 @@ export async function aggregateAndCache(mode: 'full' | 'incremental' | 'smart' =
   const endDate = new Date();
 
   if (mode === 'full') {
-    // Full aggregation: load all available historical data
-    // Default: 2 years of data (730 days) for balanced memory usage
-    const fullDays = parseInt(process.env.CACHE_FULL_DAYS || '730', 10);
+    // Full aggregation: use provided days parameter, or env default, or 730 days
+    const fullDays = days > 7 ? days : parseInt(process.env.CACHE_FULL_DAYS || '730', 10);
     startDate = subDays(endDate, fullDays);
     console.log(`[Cache] Full mode - loading last ${fullDays} days of historical data`);
   } else {
@@ -443,12 +442,15 @@ export async function getCachedDashboardKPIs(filter: MetricsFilter): Promise<Das
   const stats = getCacheStats();
 
   if (!stats.dateRange || stats.dailyStoreRecords === 0) {
-    console.log('[Cache] No cached data, triggering full aggregation...');
+    console.log('[Cache] No cached data, triggering initial sync (last 30 days)...');
 
     const autoRefresh = process.env.CACHE_AUTO_REFRESH !== 'false';
 
     if (autoRefresh) {
-      await aggregateAndCache('full');
+      // Only load last 30 days on first load for faster startup
+      // User can manually run full sync later if needed
+      const initialDays = parseInt(process.env.CACHE_INITIAL_DAYS || '30', 10);
+      await aggregateAndCache('full', initialDays);
     } else {
       throw new Error(
         'Cache is empty. Please run aggregation first: POST /api/refresh-cache'
