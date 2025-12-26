@@ -494,7 +494,7 @@ export function getCacheStats() {
     FROM metrics_daily_store
   `).get() as { minDate: string | null; maxDate: string | null };
 
-  return {
+  const stats = {
     dailyStoreRecords: dailyStoreCount.count,
     dailyMenuRecords: dailyMenuCount.count,
     hourlyRecords: hourlyCount.count,
@@ -503,6 +503,10 @@ export function getCacheStats() {
       max: dateRange.maxDate
     } : null
   };
+
+  console.log('[SQLite] getCacheStats result:', JSON.stringify(stats));
+
+  return stats;
 }
 
 /**
