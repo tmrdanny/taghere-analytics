@@ -442,18 +442,20 @@ export async function getCachedDashboardKPIs(filter: MetricsFilter): Promise<Das
   const stats = getCacheStats();
 
   if (!stats.dateRange || stats.dailyStoreRecords === 0) {
-    console.log('[Cache] No cached data, triggering initial sync (last 30 days)...');
-
-    const autoRefresh = process.env.CACHE_AUTO_REFRESH !== 'false';
+    // CACHE_AUTO_REFRESH=false means we should NEVER auto-sync from MongoDB
+    // This is important for Render deployment where cache is pre-loaded from Google Drive
+    const autoRefresh = process.env.CACHE_AUTO_REFRESH === 'true';
 
     if (autoRefresh) {
+      console.log('[Cache] No cached data, triggering initial sync (last 30 days)...');
       // Only load last 30 days on first load for faster startup
       // User can manually run full sync later if needed
       const initialDays = parseInt(process.env.CACHE_INITIAL_DAYS || '30', 10);
       await aggregateAndCache('full', initialDays);
     } else {
+      console.error('[Cache] No cached data and CACHE_AUTO_REFRESH is disabled');
       throw new Error(
-        'Cache is empty. Please run aggregation first: POST /api/refresh-cache'
+        'Cache is empty and auto-refresh is disabled. The SQLite cache file should be pre-loaded. Check if /data/cache.db exists.'
       );
     }
   }
