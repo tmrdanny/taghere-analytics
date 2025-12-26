@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getReadOnlyDb } from '@/lib/mongodb';
 
+// Stores to exclude from search results
+const EXCLUDED_STORE_NAMES = [
+  '태그히어 데모 (테스트)',
+  '호미',
+];
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -11,7 +17,10 @@ export async function GET(request: Request) {
 
     const stores = await storesCollection
       .find({
-        label: { $regex: query, $options: 'i' }
+        $and: [
+          { label: { $regex: query, $options: 'i' } },
+          { label: { $nin: EXCLUDED_STORE_NAMES } }
+        ]
       })
       .limit(50)
       .toArray();

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { aggregateAndCache } from '@/lib/cache/aggregation-cache';
+import { aggregateAndCache, smartSync } from '@/lib/cache/aggregation-cache';
 
 /**
  * POST /api/refresh-cache
@@ -7,8 +7,8 @@ import { aggregateAndCache } from '@/lib/cache/aggregation-cache';
  * Manually trigger cache refresh
  *
  * Body:
- *   - mode: 'full' | 'incremental' (default: incremental)
- *   - days: number (for incremental mode, default: 7)
+ *   - mode: 'full' | 'incremental' | 'smart' (default: smart)
+ *   - days: number (lookback days for smart mode, default: 30)
  *   - token: string (required for security)
  */
 export async function POST(request: NextRequest) {
@@ -27,14 +27,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const mode = body.mode || 'incremental';
-    const days = body.days || 7;
+    const mode = body.mode || 'smart';
+    const days = body.days || 30;
 
-    if (mode !== 'full' && mode !== 'incremental') {
+    if (mode !== 'full' && mode !== 'incremental' && mode !== 'smart') {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid mode. Must be "full" or "incremental"',
+          error: 'Invalid mode. Must be "full", "incremental", or "smart"',
         },
         { status: 400 }
       );
@@ -42,7 +42,21 @@ export async function POST(request: NextRequest) {
 
     console.log(`[API] Cache refresh requested: mode=${mode}, days=${days}`);
 
-    // Run aggregation
+    // Use smart sync for default mode
+    if (mode === 'smart') {
+      const result = await smartSync(days);
+      return NextResponse.json({
+        success: true,
+        message: result.syncedDates.length > 0
+          ? `Synced ${result.syncedDates.length} date(s): ${result.syncedDates.join(', ')}`
+          : 'Cache is already up to date',
+        mode,
+        syncedDates: result.syncedDates,
+        stats: result.stats,
+      });
+    }
+
+    // Run aggregation for full/incremental
     const stats = await aggregateAndCache(mode, days);
 
     return NextResponse.json({

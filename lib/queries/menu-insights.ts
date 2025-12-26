@@ -10,6 +10,15 @@ import {
   CrossSellingPair,
 } from '@/lib/types/menu-insights';
 
+// Maximum menu unit price threshold (menus with unit price above this are excluded)
+const MAX_MENU_UNIT_PRICE = 1000000; // 1,000,000 KRW
+
+// Stores to exclude from all statistics
+const EXCLUDED_STORE_NAMES = [
+  '태그히어 데모 (테스트)',
+  '호미',
+];
+
 /**
  * Get top menus by quantity and revenue
  */
@@ -26,8 +35,11 @@ export async function getMenuRankings(filter: MenuInsightFilter) {
     storeIds: filter.storeIds,
   });
 
-  let whereClause = 'WHERE date >= ? AND date <= ?';
-  const params: any[] = [startDateStr, endDateStr];
+  // Build exclusion clause for test stores
+  const excludePlaceholders = EXCLUDED_STORE_NAMES.map(() => '?').join(',');
+
+  let whereClause = `WHERE date >= ? AND date <= ? AND storeName NOT IN (${excludePlaceholders}) AND (quantity = 0 OR (revenue / quantity) <= ?)`;
+  const params: any[] = [startDateStr, endDateStr, ...EXCLUDED_STORE_NAMES, MAX_MENU_UNIT_PRICE];
 
   if (filter.storeIds && filter.storeIds.length > 0) {
     whereClause += ` AND storeId IN (${filter.storeIds.map(() => '?').join(',')})`;
@@ -92,8 +104,11 @@ export async function getRevenueContribution(filter: MenuInsightFilter) {
   const startDateStr = format(filter.startDate, 'yyyy-MM-dd');
   const endDateStr = format(filter.endDate, 'yyyy-MM-dd');
 
-  let whereClause = 'WHERE date >= ? AND date <= ?';
-  const params: any[] = [startDateStr, endDateStr];
+  // Build exclusion clause for test stores
+  const excludePlaceholders = EXCLUDED_STORE_NAMES.map(() => '?').join(',');
+
+  let whereClause = `WHERE date >= ? AND date <= ? AND storeName NOT IN (${excludePlaceholders}) AND (quantity = 0 OR (revenue / quantity) <= ?)`;
+  const params: any[] = [startDateStr, endDateStr, ...EXCLUDED_STORE_NAMES, MAX_MENU_UNIT_PRICE];
 
   if (filter.storeIds && filter.storeIds.length > 0) {
     whereClause += ` AND storeId IN (${filter.storeIds.map(() => '?').join(',')})`;
@@ -157,8 +172,11 @@ export async function getMenuTrends(filter: MenuInsightFilter) {
   const startDateStr = format(filter.startDate, 'yyyy-MM-dd');
   const endDateStr = format(filter.endDate, 'yyyy-MM-dd');
 
-  let whereClause = 'WHERE date >= ? AND date <= ?';
-  const params: any[] = [startDateStr, endDateStr];
+  // Build exclusion clause for test stores
+  const excludePlaceholders = EXCLUDED_STORE_NAMES.map(() => '?').join(',');
+
+  let whereClause = `WHERE date >= ? AND date <= ? AND storeName NOT IN (${excludePlaceholders}) AND (quantity = 0 OR (revenue / quantity) <= ?)`;
+  const params: any[] = [startDateStr, endDateStr, ...EXCLUDED_STORE_NAMES, MAX_MENU_UNIT_PRICE];
 
   if (filter.storeIds && filter.storeIds.length > 0) {
     whereClause += ` AND storeId IN (${filter.storeIds.map(() => '?').join(',')})`;
@@ -187,8 +205,8 @@ export async function getMenuTrends(filter: MenuInsightFilter) {
 
   // Get daily data for each menu
   const menuTrends: MenuTrend[] = topMenus.map(menu => {
-    let menuWhereClause = `WHERE date >= ? AND date <= ? AND menuName = ?`;
-    const menuParams: any[] = [startDateStr, endDateStr, menu.menuName];
+    let menuWhereClause = `WHERE date >= ? AND date <= ? AND menuName = ? AND storeName NOT IN (${excludePlaceholders}) AND (quantity = 0 OR (revenue / quantity) <= ?)`;
+    const menuParams: any[] = [startDateStr, endDateStr, menu.menuName, ...EXCLUDED_STORE_NAMES, MAX_MENU_UNIT_PRICE];
 
     if (filter.storeIds && filter.storeIds.length > 0) {
       menuWhereClause += ` AND storeId IN (${filter.storeIds.map(() => '?').join(',')})`;

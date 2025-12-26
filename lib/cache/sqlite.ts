@@ -8,6 +8,18 @@ import { resolve } from 'path';
 
 let db: Database.Database | null = null;
 
+// Stores to exclude from all statistics
+const EXCLUDED_STORE_NAMES = [
+  '태그히어 데모 (테스트)',
+  '호미',
+];
+
+// Maximum average order value threshold (daily records with avg above this are excluded)
+const MAX_AVG_ORDER_VALUE = 1000000; // 1,000,000 KRW
+
+// Maximum menu unit price threshold (menus with unit price above this are excluded)
+const MAX_MENU_UNIT_PRICE = 1000000; // 1,000,000 KRW
+
 /**
  * Get or create SQLite database connection
  */
@@ -220,12 +232,17 @@ export function upsertHourlyStoreMetrics(metrics: any[]) {
 export function queryDailyStoreMetrics(startDate: string, endDate: string, storeIds?: string[]) {
   const db = getDb();
 
+  // Build exclusion clause for test stores
+  const excludePlaceholders = EXCLUDED_STORE_NAMES.map(() => '?').join(',');
+
   let sql = `
     SELECT * FROM metrics_daily_store
     WHERE date >= ? AND date <= ?
+    AND storeName NOT IN (${excludePlaceholders})
+    AND avgOrderValue <= ?
   `;
 
-  const params: any[] = [startDate, endDate];
+  const params: any[] = [startDate, endDate, ...EXCLUDED_STORE_NAMES, MAX_AVG_ORDER_VALUE];
 
   if (storeIds && storeIds.length > 0) {
     const placeholders = storeIds.map(() => '?').join(',');
@@ -245,12 +262,17 @@ export function queryDailyStoreMetrics(startDate: string, endDate: string, store
 export function queryDailyStoreMenuMetrics(startDate: string, endDate: string, storeIds?: string[]) {
   const db = getDb();
 
+  // Build exclusion clause for test stores
+  const excludePlaceholders = EXCLUDED_STORE_NAMES.map(() => '?').join(',');
+
   let sql = `
     SELECT * FROM metrics_daily_store_menu
     WHERE date >= ? AND date <= ?
+    AND storeName NOT IN (${excludePlaceholders})
+    AND (quantity = 0 OR (revenue / quantity) <= ?)
   `;
 
-  const params: any[] = [startDate, endDate];
+  const params: any[] = [startDate, endDate, ...EXCLUDED_STORE_NAMES, MAX_MENU_UNIT_PRICE];
 
   if (storeIds && storeIds.length > 0) {
     const placeholders = storeIds.map(() => '?').join(',');
@@ -267,12 +289,23 @@ export function queryDailyStoreMenuMetrics(startDate: string, endDate: string, s
 export function queryHourlyStoreMetrics(startDate: string, endDate: string, storeIds?: string[]) {
   const db = getDb();
 
+  // Get excluded store IDs based on store names
+  const excludedStoreIds = getExcludedStoreIds();
+
   let sql = `
     SELECT * FROM metrics_hourly_store
     WHERE datetime >= ? AND datetime <= ?
+    AND (orderCount = 0 OR (gmv / orderCount) <= ?)
   `;
 
-  const params: any[] = [startDate, endDate];
+  const params: any[] = [startDate, endDate, MAX_AVG_ORDER_VALUE];
+
+  // Exclude test stores
+  if (excludedStoreIds.length > 0) {
+    const excludePlaceholders = excludedStoreIds.map(() => '?').join(',');
+    sql += ` AND storeId NOT IN (${excludePlaceholders})`;
+    params.push(...excludedStoreIds);
+  }
 
   if (storeIds && storeIds.length > 0) {
     const placeholders = storeIds.map(() => '?').join(',');
@@ -281,6 +314,24 @@ export function queryHourlyStoreMetrics(startDate: string, endDate: string, stor
   }
 
   return db.prepare(sql).all(...params);
+}
+
+/**
+ * Get store IDs that should be excluded from statistics
+ */
+function getExcludedStoreIds(): string[] {
+  const db = getDb();
+
+  if (EXCLUDED_STORE_NAMES.length === 0) return [];
+
+  const placeholders = EXCLUDED_STORE_NAMES.map(() => '?').join(',');
+  const sql = `
+    SELECT DISTINCT storeId FROM metrics_daily_store
+    WHERE storeName IN (${placeholders})
+  `;
+
+  const rows = db.prepare(sql).all(...EXCLUDED_STORE_NAMES) as Array<{ storeId: string }>;
+  return rows.map(r => r.storeId);
 }
 
 /**
@@ -309,6 +360,38 @@ export function getStoreNames(storeIds: string[]): Map<string, string> {
   }
 
   return storeNames;
+}
+
+/**
+ * Get missing dates in cache (dates with no data within a range)
+ * Returns array of date strings in 'yyyy-MM-dd' format
+ */
+export function getMissingDates(startDate: string, endDate: string): string[] {
+  const db = getDb();
+
+  // Get all dates that have data
+  const existingDates = db.prepare(`
+    SELECT DISTINCT date FROM metrics_daily_store
+    WHERE date >= ? AND date <= ?
+    ORDER BY date ASC
+  `).all(startDate, endDate) as Array<{ date: string }>;
+
+  const existingDateSet = new Set(existingDates.map(r => r.date));
+
+  // Generate all dates in range and find missing ones
+  const missingDates: string[] = [];
+  const current = new Date(startDate);
+  const end = new Date(endDate);
+
+  while (current <= end) {
+    const dateStr = current.toISOString().split('T')[0];
+    if (!existingDateSet.has(dateStr)) {
+      missingDates.push(dateStr);
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  return missingDates;
 }
 
 /**

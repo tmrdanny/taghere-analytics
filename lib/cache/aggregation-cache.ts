@@ -12,14 +12,106 @@ import {
   queryDailyStoreMetrics,
   queryDailyStoreMenuMetrics,
   getCacheStats,
+  getMissingDates,
 } from './sqlite';
 import { MetricsFilter, DashboardKPI } from '../types/metrics';
 import { format, subDays } from 'date-fns';
 
+// Maximum order value threshold (orders above this are considered test orders)
+const MAX_ORDER_VALUE = 1000000; // 1,000,000 KRW
+
+/**
+ * Smart sync: Only fetch missing dates + today
+ * Returns the dates that were synced
+ */
+export async function smartSync(lookbackDays = 30): Promise<{ syncedDates: string[]; stats: ReturnType<typeof getCacheStats> }> {
+  console.log(`[Cache] Starting smart sync (lookback: ${lookbackDays} days)`);
+
+  const startTime = Date.now();
+  const today = new Date();
+  const todayStr = format(today, 'yyyy-MM-dd');
+  const startDate = subDays(today, lookbackDays);
+  const startDateStr = format(startDate, 'yyyy-MM-dd');
+
+  // Find missing dates in the lookback period
+  const missingDates = getMissingDates(startDateStr, todayStr);
+
+  // Always include today (for latest data)
+  if (!missingDates.includes(todayStr)) {
+    missingDates.push(todayStr);
+  }
+
+  // Sort dates
+  missingDates.sort();
+
+  if (missingDates.length === 0) {
+    console.log('[Cache] No missing dates found, cache is up to date');
+    return { syncedDates: [], stats: getCacheStats() };
+  }
+
+  console.log(`[Cache] Found ${missingDates.length} dates to sync: ${missingDates.join(', ')}`);
+
+  // Group consecutive dates into ranges for efficient querying
+  const dateRanges = groupConsecutiveDates(missingDates);
+
+  console.log(`[Cache] Grouped into ${dateRanges.length} date range(s)`);
+
+  // Sync each date range
+  for (const range of dateRanges) {
+    console.log(`[Cache] Syncing range: ${range.start} to ${range.end}`);
+    await aggregateDailyStoreMetrics(range.start, range.end);
+    await aggregateDailyStoreMenuMetrics(range.start, range.end);
+    await aggregateHourlyStoreMetrics(range.start, range.end);
+  }
+
+  const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log(`[Cache] Smart sync completed in ${duration}s`);
+
+  return { syncedDates: missingDates, stats: getCacheStats() };
+}
+
+/**
+ * Group consecutive dates into ranges
+ */
+function groupConsecutiveDates(dates: string[]): Array<{ start: string; end: string }> {
+  if (dates.length === 0) return [];
+
+  const ranges: Array<{ start: string; end: string }> = [];
+  let rangeStart = dates[0];
+  let rangeEnd = dates[0];
+
+  for (let i = 1; i < dates.length; i++) {
+    const prevDate = new Date(dates[i - 1]);
+    const currDate = new Date(dates[i]);
+    const diffDays = (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diffDays === 1) {
+      // Consecutive date, extend range
+      rangeEnd = dates[i];
+    } else {
+      // Gap found, save current range and start new one
+      ranges.push({ start: rangeStart, end: rangeEnd });
+      rangeStart = dates[i];
+      rangeEnd = dates[i];
+    }
+  }
+
+  // Don't forget the last range
+  ranges.push({ start: rangeStart, end: rangeEnd });
+
+  return ranges;
+}
+
 /**
  * Aggregate from MongoDB and cache in SQLite
  */
-export async function aggregateAndCache(mode: 'full' | 'incremental' = 'incremental', days = 7) {
+export async function aggregateAndCache(mode: 'full' | 'incremental' | 'smart' = 'incremental', days = 7) {
+  // Use smart sync for incremental mode
+  if (mode === 'smart' || mode === 'incremental') {
+    const result = await smartSync(days);
+    return result.stats;
+  }
+
   console.log(`[Cache] Starting aggregation (mode: ${mode}, days: ${days})`);
 
   const startTime = Date.now();
@@ -35,7 +127,7 @@ export async function aggregateAndCache(mode: 'full' | 'incremental' = 'incremen
     startDate = subDays(endDate, fullDays);
     console.log(`[Cache] Full mode - loading last ${fullDays} days of historical data`);
   } else {
-    // Incremental: last N days
+    // Fallback: last N days
     startDate = subDays(endDate, days);
   }
 
@@ -74,6 +166,7 @@ async function aggregateDailyStoreMetrics(startDateStr: string, endDateStr: stri
     {
       $addFields: {
         dateOnly: { $substr: ['$date', 0, 10] },
+        resultPriceNum: { $toDouble: { $ifNull: ['$resultPrice', '0'] } },
       },
     },
     {
@@ -82,6 +175,8 @@ async function aggregateDailyStoreMetrics(startDateStr: string, endDateStr: stri
           $gte: startDateStr,
           $lte: endDateStr,
         },
+        // Exclude test orders (over 1 million KRW)
+        resultPriceNum: { $lte: MAX_ORDER_VALUE },
       },
     },
     {
@@ -170,16 +265,19 @@ async function aggregateDailyStoreMenuMetrics(startDateStr: string, endDateStr: 
 
   console.log(`[Cache] Aggregating daily store-menu metrics (${startDateStr} to ${endDateStr})`);
 
-  // Step 1: Fetch bills with store info
+  // Step 1: Fetch bills with store info (excluding test orders over 1 million KRW)
   const bills = await billsCollection.aggregate([
     {
       $addFields: {
         dateOnly: { $substr: ['$date', 0, 10] },
+        resultPriceNum: { $toDouble: { $ifNull: ['$resultPrice', '0'] } },
       },
     },
     {
       $match: {
         dateOnly: { $gte: startDateStr, $lte: endDateStr },
+        // Exclude test orders (over 1 million KRW)
+        resultPriceNum: { $lte: MAX_ORDER_VALUE },
       },
     },
     {
@@ -272,6 +370,7 @@ async function aggregateHourlyStoreMetrics(startDateStr: string, endDateStr: str
       $addFields: {
         dateOnly: { $substr: ['$date', 0, 10] },
         hourStr: { $substr: ['$date', 11, 2] },
+        resultPriceNum: { $toDouble: { $ifNull: ['$resultPrice', '0'] } },
       },
     },
     {
@@ -280,6 +379,8 @@ async function aggregateHourlyStoreMetrics(startDateStr: string, endDateStr: str
           $gte: startDateStr,
           $lte: endDateStr,
         },
+        // Exclude test orders (over 1 million KRW)
+        resultPriceNum: { $lte: MAX_ORDER_VALUE },
       },
     },
     {

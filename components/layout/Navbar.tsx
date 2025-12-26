@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Search, Home, LogOut } from 'lucide-react';
+import { Search, Home, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
@@ -37,7 +38,13 @@ export function Navbar() {
       <div className="container flex h-14 max-w-7xl items-center mx-auto px-4 md:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 mr-6">
-          <BarChart3 className="h-6 w-6 text-primary" />
+          <Image
+            src="/taghere-logo.png"
+            alt="TagHere"
+            width={28}
+            height={28}
+            className="rounded-full"
+          />
           <span className="font-semibold text-lg hidden sm:inline-block">
             TagHere Analytics
           </span>
