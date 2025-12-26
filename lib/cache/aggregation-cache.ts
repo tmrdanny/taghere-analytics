@@ -13,6 +13,7 @@ import {
   queryDailyStoreMenuMetrics,
   getCacheStats,
   getMissingDates,
+  updateCacheMetadataBatch,
 } from './sqlite';
 import { MetricsFilter, DashboardKPI } from '../types/metrics';
 import { format, subDays } from 'date-fns';
@@ -63,6 +64,9 @@ export async function smartSync(lookbackDays = 30): Promise<{ syncedDates: strin
     await aggregateDailyStoreMenuMetrics(range.start, range.end);
     await aggregateHourlyStoreMetrics(range.start, range.end);
   }
+
+  // Update cache metadata for all synced dates
+  updateCacheMetadataBatch(missingDates);
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
   console.log(`[Cache] Smart sync completed in ${duration}s`);
@@ -153,28 +157,40 @@ export async function aggregateAndCache(mode: 'full' | 'incremental' | 'smart' =
 
 /**
  * Aggregate daily store metrics from MongoDB
+ * OPTIMIZED: Uses index on 'date' field by matching first with string range
  */
 async function aggregateDailyStoreMetrics(startDateStr: string, endDateStr: string) {
   const db = await getMongoDb();
   const billsCollection = db.collection(process.env.COLLECTION_ORDERS || 'bills');
   const storesCollection = db.collection(process.env.COLLECTION_MENUS || 'stores');
 
-  console.log(`[Cache] Aggregating daily store metrics...`);
+  console.log(`[Cache] Aggregating daily store metrics (${startDateStr} to ${endDateStr})...`);
+
+  // Create full datetime range for index-friendly matching
+  // Note: date format is "YYYY-MM-DD HH:mm:ss" (space separator, not T)
+  const startDateTime = `${startDateStr} 00:00:00`;
+  const endDateTime = `${endDateStr} 23:59:59`;
 
   const pipeline = [
+    // CRITICAL: $match FIRST to use index on 'date' field
+    {
+      $match: {
+        date: {
+          $gte: startDateTime,
+          $lte: endDateTime,
+        },
+      },
+    },
+    // Now add computed fields only for matched documents
     {
       $addFields: {
         dateOnly: { $substr: ['$date', 0, 10] },
         resultPriceNum: { $toDouble: { $ifNull: ['$resultPrice', '0'] } },
       },
     },
+    // Filter out test orders
     {
       $match: {
-        dateOnly: {
-          $gte: startDateStr,
-          $lte: endDateStr,
-        },
-        // Exclude test orders (over 1 million KRW)
         resultPriceNum: { $lte: MAX_ORDER_VALUE },
       },
     },
@@ -256,6 +272,7 @@ async function aggregateDailyStoreMetrics(startDateStr: string, endDateStr: stri
 
 /**
  * Aggregate daily store-menu metrics from MongoDB
+ * OPTIMIZED: Uses index on 'date' field by matching first with string range
  */
 async function aggregateDailyStoreMenuMetrics(startDateStr: string, endDateStr: string) {
   const db = await getMongoDb();
@@ -264,18 +281,32 @@ async function aggregateDailyStoreMenuMetrics(startDateStr: string, endDateStr: 
 
   console.log(`[Cache] Aggregating daily store-menu metrics (${startDateStr} to ${endDateStr})`);
 
+  // Create full datetime range for index-friendly matching
+  // Note: date format is "YYYY-MM-DD HH:mm:ss" (space separator, not T)
+  const startDateTime = `${startDateStr} 00:00:00`;
+  const endDateTime = `${endDateStr} 23:59:59`;
+
   // Step 1: Fetch bills with store info (excluding test orders over 1 million KRW)
   const bills = await billsCollection.aggregate([
+    // CRITICAL: $match FIRST to use index on 'date' field
+    {
+      $match: {
+        date: {
+          $gte: startDateTime,
+          $lte: endDateTime,
+        },
+      },
+    },
+    // Now add computed fields only for matched documents
     {
       $addFields: {
         dateOnly: { $substr: ['$date', 0, 10] },
         resultPriceNum: { $toDouble: { $ifNull: ['$resultPrice', '0'] } },
       },
     },
+    // Filter out test orders
     {
       $match: {
-        dateOnly: { $gte: startDateStr, $lte: endDateStr },
-        // Exclude test orders (over 1 million KRW)
         resultPriceNum: { $lte: MAX_ORDER_VALUE },
       },
     },
@@ -357,14 +388,30 @@ async function aggregateDailyStoreMenuMetrics(startDateStr: string, endDateStr: 
 
 /**
  * Aggregate hourly store metrics from MongoDB
+ * OPTIMIZED: Uses index on 'date' field by matching first with string range
  */
 async function aggregateHourlyStoreMetrics(startDateStr: string, endDateStr: string) {
   const db = await getMongoDb();
   const billsCollection = db.collection(process.env.COLLECTION_ORDERS || 'bills');
 
-  console.log(`[Cache] Aggregating hourly store metrics...`);
+  console.log(`[Cache] Aggregating hourly store metrics (${startDateStr} to ${endDateStr})...`);
+
+  // Create full datetime range for index-friendly matching
+  // Note: date format is "YYYY-MM-DD HH:mm:ss" (space separator, not T)
+  const startDateTime = `${startDateStr} 00:00:00`;
+  const endDateTime = `${endDateStr} 23:59:59`;
 
   const pipeline = [
+    // CRITICAL: $match FIRST to use index on 'date' field
+    {
+      $match: {
+        date: {
+          $gte: startDateTime,
+          $lte: endDateTime,
+        },
+      },
+    },
+    // Now add computed fields only for matched documents
     {
       $addFields: {
         dateOnly: { $substr: ['$date', 0, 10] },
@@ -372,13 +419,9 @@ async function aggregateHourlyStoreMetrics(startDateStr: string, endDateStr: str
         resultPriceNum: { $toDouble: { $ifNull: ['$resultPrice', '0'] } },
       },
     },
+    // Filter out test orders
     {
       $match: {
-        dateOnly: {
-          $gte: startDateStr,
-          $lte: endDateStr,
-        },
-        // Exclude test orders (over 1 million KRW)
         resultPriceNum: { $lte: MAX_ORDER_VALUE },
       },
     },

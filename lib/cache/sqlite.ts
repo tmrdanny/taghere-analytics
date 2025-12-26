@@ -121,6 +121,14 @@ function initializeTables() {
     ON metrics_hourly_store(datetime);
   `);
 
+  // Create cache_metadata table for tracking last update time per date
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cache_metadata (
+      date TEXT PRIMARY KEY,
+      lastUpdatedAt TEXT NOT NULL
+    );
+  `);
+
   console.log('[SQLite] Tables initialized');
 }
 
@@ -363,11 +371,79 @@ export function getStoreNames(storeIds: string[]): Map<string, string> {
 }
 
 /**
+ * Update cache metadata with current timestamp for a date
+ */
+export function updateCacheMetadata(date: string): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT OR REPLACE INTO cache_metadata (date, lastUpdatedAt)
+    VALUES (?, ?)
+  `).run(date, now);
+}
+
+/**
+ * Update cache metadata for multiple dates at once
+ */
+export function updateCacheMetadataBatch(dates: string[]): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO cache_metadata (date, lastUpdatedAt)
+    VALUES (?, ?)
+  `);
+
+  const insertMany = db.transaction((datesToUpdate: string[]) => {
+    for (const date of datesToUpdate) {
+      stmt.run(date, now);
+    }
+  });
+
+  insertMany(dates);
+  console.log(`[SQLite] Updated cache metadata for ${dates.length} dates`);
+}
+
+/**
+ * Get last updated timestamp for a date
+ */
+export function getDateLastUpdated(date: string): string | null {
+  const db = getDb();
+
+  const row = db.prepare(`
+    SELECT lastUpdatedAt FROM cache_metadata WHERE date = ?
+  `).get(date) as { lastUpdatedAt: string } | undefined;
+
+  return row?.lastUpdatedAt || null;
+}
+
+/**
+ * Check if a date's cache is stale (older than maxAgeHours)
+ */
+export function isDateCacheStale(date: string, maxAgeHours: number): boolean {
+  const lastUpdated = getDateLastUpdated(date);
+
+  if (!lastUpdated) {
+    return true; // No metadata means it's stale
+  }
+
+  const lastUpdatedTime = new Date(lastUpdated).getTime();
+  const now = Date.now();
+  const ageHours = (now - lastUpdatedTime) / (1000 * 60 * 60);
+
+  return ageHours >= maxAgeHours;
+}
+
+/**
  * Get missing dates in cache (dates with no data within a range)
+ * Also includes today if it's stale (older than CACHE_STALE_HOURS)
  * Returns array of date strings in 'yyyy-MM-dd' format
  */
 export function getMissingDates(startDate: string, endDate: string): string[] {
   const db = getDb();
+  const staleHours = parseInt(process.env.CACHE_STALE_HOURS || '6', 10);
+  const today = new Date().toISOString().split('T')[0];
 
   // Get all dates that have data
   const existingDates = db.prepare(`
@@ -385,9 +461,16 @@ export function getMissingDates(startDate: string, endDate: string): string[] {
 
   while (current <= end) {
     const dateStr = current.toISOString().split('T')[0];
+
     if (!existingDateSet.has(dateStr)) {
+      // Date has no data at all
       missingDates.push(dateStr);
+    } else if (dateStr === today && isDateCacheStale(dateStr, staleHours)) {
+      // Today exists but is stale (older than CACHE_STALE_HOURS)
+      missingDates.push(dateStr);
+      console.log(`[SQLite] Today's cache is stale (>${staleHours}h), will refresh`);
     }
+
     current.setDate(current.getDate() + 1);
   }
 

@@ -30,8 +30,8 @@ echo "Cache file not found, downloading from Google Drive..."
 # Using the direct download URL format for large files
 DOWNLOAD_URL="https://drive.google.com/uc?export=download&id=${GDRIVE_FILE_ID}&confirm=t"
 
-echo "Downloading cache.db.gz..."
-curl -L -o "${CACHE_FILE}.gz" "$DOWNLOAD_URL"
+echo "Downloading cache.db..."
+curl -L -o "$CACHE_FILE" "$DOWNLOAD_URL"
 
 if [ $? -ne 0 ]; then
     echo "ERROR: Failed to download cache file"
@@ -39,17 +39,14 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Download complete. File size:"
-ls -lh "${CACHE_FILE}.gz"
-
-echo "Extracting cache.db.gz..."
-gunzip -f "${CACHE_FILE}.gz"
-
-if [ $? -ne 0 ]; then
-    echo "ERROR: Failed to extract cache file"
-    exit 1
-fi
-
-echo "Extraction complete. Final cache file:"
 ls -lh "$CACHE_FILE"
+
+# Verify it's a valid SQLite file
+if file "$CACHE_FILE" | grep -q "SQLite"; then
+    echo "Valid SQLite database file confirmed"
+else
+    echo "WARNING: Downloaded file may not be a valid SQLite database"
+    file "$CACHE_FILE"
+fi
 
 echo "=== Cache download completed ==="
