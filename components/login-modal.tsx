@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -55,10 +56,14 @@ export function LoginModal({ onLogin }: LoginModalProps) {
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-neutral-900 rounded-xl shadow-2xl p-8 w-full max-w-sm mx-4 border border-neutral-800 transform transition-all animate-in fade-in zoom-in duration-300">
         <div className="text-center mb-8">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-blue-900/30 mb-4">
-            <svg className="h-6 w-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/taghere-logo.png"
+              alt="TagHere Logo"
+              width={120}
+              height={120}
+              priority
+            />
           </div>
           <h1 className="text-2xl font-bold text-white">
             TagHere Analytics
