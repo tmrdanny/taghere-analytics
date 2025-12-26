@@ -5,36 +5,36 @@
  * Manual trigger only - no automatic scheduling
  */
 
-import { aggregateAndCache } from '../cache/aggregation-cache';
+import { smartSync, aggregateAndCache } from '../cache/aggregation-cache';
 import { getCacheStats } from '../cache/sqlite';
 
 /**
  * Execute the incremental sync process
- * Refreshes SQLite cache with recent data from MongoDB
+ * Uses smart sync to only fetch missing dates + today
  */
 export async function executeIncrementalSync() {
   try {
-    console.log('[Incremental Sync] Starting SQLite cache refresh...');
+    console.log('[Incremental Sync] Starting smart SQLite cache refresh...');
 
     // Get cache stats before sync
     const beforeStats = getCacheStats();
     console.log('[Incremental Sync] Cache stats before:', beforeStats);
 
-    // Refresh cache with incremental data (last 7 days by default)
-    const incrementalDays = parseInt(process.env.CACHE_INCREMENTAL_DAYS || '7', 10);
-    const stats = await aggregateAndCache('incremental', incrementalDays);
+    // Use smart sync to only fetch missing dates + today
+    const lookbackDays = parseInt(process.env.CACHE_INCREMENTAL_DAYS || '30', 10);
+    const result = await smartSync(lookbackDays);
 
-    console.log('[Incremental Sync] Cache refresh completed!');
-    console.log('[Incremental Sync] Cache stats after:', stats);
+    console.log('[Incremental Sync] Smart sync completed!');
+    console.log('[Incremental Sync] Synced dates:', result.syncedDates);
+    console.log('[Incremental Sync] Cache stats after:', result.stats);
 
     return {
       success: true,
-      message: `캐시가 최근 ${incrementalDays}일 데이터로 새로고침되었습니다.`,
-      metricsProcessed: {
-        daily: stats.dailyStoreRecords,
-        menu: stats.dailyMenuRecords,
-      },
-      cacheStats: stats,
+      message: result.syncedDates.length > 0
+        ? `${result.syncedDates.length}개 날짜가 동기화되었습니다.`
+        : '캐시가 최신 상태입니다.',
+      syncedDates: result.syncedDates,
+      stats: result.stats,
     };
   } catch (error) {
     console.error('[Incremental Sync] Failed to refresh cache:', error);
