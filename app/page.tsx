@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, DollarSign, ShoppingCart, Store, CreditCard, BarChart3 } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, Store, CreditCard } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import { StoreGroupsManager } from '@/components/store-groups/StoreGroupsManager';
 import { StoreGroup } from '@/lib/types/store-groups';
 import { MenuInsightsDashboard } from '@/components/menu-insights/MenuInsightsDashboard';
@@ -213,14 +214,7 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (error) {
