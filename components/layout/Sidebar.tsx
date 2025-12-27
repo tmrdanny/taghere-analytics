@@ -154,18 +154,33 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
-      <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-sidebar/90 backdrop-blur border border-sidebar-border md:hidden"
-        aria-label="Toggle menu"
-      >
-        {isMobileOpen ? (
-          <X className="h-5 w-5 text-sidebar-foreground" />
-        ) : (
-          <Menu className="h-5 w-5 text-sidebar-foreground" />
-        )}
-      </button>
+      {/* Mobile header bar */}
+      <div className="fixed top-0 left-0 right-0 z-30 h-14 bg-sidebar/95 backdrop-blur-sm border-b border-sidebar-border flex items-center px-4 md:hidden">
+        <button
+          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          className="p-2 -ml-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors"
+          aria-label="Toggle menu"
+        >
+          {isMobileOpen ? (
+            <X className="h-5 w-5 text-sidebar-foreground" />
+          ) : (
+            <Menu className="h-5 w-5 text-sidebar-foreground" />
+          )}
+        </button>
+        <div className="flex items-center gap-2 ml-2">
+          <Image
+            src="/taghere-logo.png"
+            alt="TagHere"
+            width={24}
+            height={24}
+            className="rounded"
+          />
+          <span className="font-semibold text-sidebar-foreground">TagHere</span>
+        </div>
+      </div>
+
+      {/* Mobile content spacer */}
+      <div className="h-14 md:hidden" />
 
       {/* Mobile overlay */}
       {isMobileOpen && (
@@ -178,10 +193,10 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-60 flex-shrink-0 flex flex-col',
+          'fixed left-0 top-0 z-50 h-screen w-60 flex-shrink-0 flex flex-col',
           'bg-sidebar border-r border-sidebar-border',
           'transition-transform duration-300 ease-in-out',
-          'md:translate-x-0',
+          'md:z-40 md:translate-x-0',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >

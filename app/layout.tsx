@@ -28,13 +28,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased text-neutral-900 dark:text-neutral-50`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased text-neutral-900 dark:text-neutral-50 overflow-x-hidden`}
       >
         <div className="aurora-bg" aria-hidden="true" />
         <Providers>
           <AuthLayout>
             <Sidebar />
-            <main className="md:pl-60 min-h-screen">
+            <main className="md:pl-60 min-h-screen w-full max-w-full">
               {children}
             </main>
           </AuthLayout>
