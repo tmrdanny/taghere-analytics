@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/theme-provider";
-import { Navbar } from "@/components/layout/Navbar";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { AuthLayout } from "@/components/auth-layout";
 
 const geistSans = Geist({
@@ -33,8 +33,10 @@ export default function RootLayout({
         <div className="aurora-bg" aria-hidden="true" />
         <Providers>
           <AuthLayout>
-            <Navbar />
-            {children}
+            <Sidebar />
+            <main className="md:pl-60 min-h-screen">
+              {children}
+            </main>
           </AuthLayout>
         </Providers>
       </body>
