@@ -7,18 +7,40 @@ on:
   workflow_dispatch: # 수동 실행 가능
 
 jobs:
-  send-report:
+  sync-and-report:
     runs-on: ubuntu-latest
     steps:
+      - name: Sync Data (Incremental)
+        run: |
+          echo "Starting data sync..."
+          response=$(curl -s -w "\n%{http_code}" \
+            "https://taghere-analytics-8gzo.onrender.com/api/sync/token-sync?token=${{ secrets.CACHE_REFRESH_TOKEN }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Sync Response: $body"
+          echo "HTTP Code: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "Warning: Data sync failed, but continuing with report..."
+          else
+            echo "Data sync completed successfully!"
+          fi
+
+      - name: Wait for sync to settle
+        run: sleep 5
+
       - name: Send Daily Health Report to Slack
         run: |
+          echo "Sending Slack report..."
           response=$(curl -s -w "\n%{http_code}" \
             "https://taghere-analytics-8gzo.onrender.com/api/slack/daily-summary?token=${{ secrets.CACHE_REFRESH_TOKEN }}")
 
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
 
-          echo "Response: $body"
+          echo "Report Response: $body"
           echo "HTTP Code: $http_code"
 
           if [ "$http_code" -ne 200 ]; then
