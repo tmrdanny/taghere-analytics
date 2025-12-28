@@ -1,0 +1,29 @@
+name: Daily Slack Health Report
+
+on:
+  schedule:
+    # 01:00 UTC = 10:00 KST (매일 오전 10시)
+    - cron: '0 1 * * *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Daily Health Report to Slack
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            "https://taghere-analytics-8gzo.onrender.com/api/slack/daily-summary?token=${{ secrets.CACHE_REFRESH_TOKEN }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "Failed to send Slack report"
+            exit 1
+          fi
+
+          echo "Slack report sent successfully!"
