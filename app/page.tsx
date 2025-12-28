@@ -472,6 +472,68 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Paid Amount Trends */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Paid Amount Trends</CardTitle>
+              <CardDescription>Daily paid amount (선결제) over time</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={trendGranularity === 'daily' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTrendGranularity('daily')}
+              >
+                Daily
+              </Button>
+              <Button
+                variant={trendGranularity === 'weekly' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTrendGranularity('weekly')}
+              >
+                Weekly
+              </Button>
+              <Button
+                variant={trendGranularity === 'monthly' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTrendGranularity('monthly')}
+              >
+                Monthly
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={getAggregatedMetrics(data.dailyMetrics, trendGranularity)}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="date" className="text-xs" tick={{ fontSize: 12 }} />
+                  <YAxis className="text-xs" tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                    }}
+                    formatter={(value: any) => formatCurrency(value)}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="paidAmount"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={{ fill: '#10b981', r: 3 }}
+                    activeDot={{ r: 5 }}
+                    name="Paid Amount (선결제)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Top Tables */}
         <Tabs defaultValue="stores" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
