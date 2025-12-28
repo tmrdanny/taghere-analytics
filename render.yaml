@@ -25,3 +25,18 @@ services:
       # MONGODB_URI
       # MONGODB_DB_NAME
       # MONGODB_CERT_PATH (use Secret Files feature: /etc/secrets/mongodb-cert.pem)
+
+  # Cron Job for daily Slack health report (10:00 AM KST = 01:00 UTC)
+  - type: cron
+    name: slack-daily-summary
+    env: node
+    region: oregon
+    schedule: "0 1 * * *"
+    buildCommand: echo "No build needed"
+    startCommand: curl -s "https://taghere-analytics-8gzo.onrender.com/api/slack/daily-summary?token=$CACHE_REFRESH_TOKEN"
+    envVars:
+      - key: CACHE_REFRESH_TOKEN
+        fromService:
+          type: web
+          name: taghere-analytics
+          envVarKey: CACHE_REFRESH_TOKEN
