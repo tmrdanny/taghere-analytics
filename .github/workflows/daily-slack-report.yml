@@ -10,11 +10,14 @@ jobs:
   sync-and-report:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync Data (Incremental)
+      - name: Force Sync Yesterday's Data
         run: |
-          echo "Starting data sync..."
+          # KST 기준 어제 날짜 계산 (UTC+9)
+          YESTERDAY=$(TZ='Asia/Seoul' date -d 'yesterday' '+%Y-%m-%d')
+          echo "Syncing data for: $YESTERDAY"
+
           response=$(curl -s -w "\n%{http_code}" \
-            "https://taghere-analytics-8gzo.onrender.com/api/sync/token-sync?token=${{ secrets.CACHE_REFRESH_TOKEN }}")
+            "https://taghere-analytics-8gzo.onrender.com/api/sync/force-date?token=${{ secrets.CACHE_REFRESH_TOKEN }}&date=$YESTERDAY")
 
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
