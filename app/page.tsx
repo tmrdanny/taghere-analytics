@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, DollarSign, ShoppingCart, Store, CreditCard } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingCart, Store, CreditCard, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 import { StoreGroupsManager } from '@/components/store-groups/StoreGroupsManager';
 import { StoreGroup } from '@/lib/types/store-groups';
@@ -211,6 +212,42 @@ export default function Dashboard() {
 
   const formatPercent = (value: number) => {
     return `${(value * 100).toFixed(1)}%`;
+  };
+
+  // Download Paid Amount data as Excel
+  const downloadPaidAmountExcel = () => {
+    if (!data) return;
+
+    const aggregatedData = getAggregatedMetrics(data.dailyMetrics, trendGranularity);
+
+    const excelData = aggregatedData.map((item) => ({
+      날짜: item.date,
+      '선결제액 (원)': item.paidAmount,
+      'GMV (원)': item.gmv,
+      '주문 수': item.orders,
+    }));
+
+    // Add total row
+    const totalPaidAmount = aggregatedData.reduce((sum, item) => sum + item.paidAmount, 0);
+    const totalGmv = aggregatedData.reduce((sum, item) => sum + item.gmv, 0);
+    const totalOrders = aggregatedData.reduce((sum, item) => sum + item.orders, 0);
+
+    excelData.push({
+      날짜: '합계',
+      '선결제액 (원)': totalPaidAmount,
+      'GMV (원)': totalGmv,
+      '주문 수': totalOrders,
+    });
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '선결제액 현황');
+
+    // Set column widths
+    ws['!cols'] = [{ wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 12 }];
+
+    const granularityLabel = trendGranularity === 'daily' ? '일별' : trendGranularity === 'weekly' ? '주별' : '월별';
+    XLSX.writeFile(wb, `paid-amount-${granularityLabel}-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   if (loading) {
@@ -500,6 +537,10 @@ export default function Dashboard() {
                 onClick={() => setTrendGranularity('monthly')}
               >
                 Monthly
+              </Button>
+              <Button variant="outline" size="sm" onClick={downloadPaidAmountExcel}>
+                <Download className="h-4 w-4 mr-1" />
+                Excel
               </Button>
             </div>
           </CardHeader>
