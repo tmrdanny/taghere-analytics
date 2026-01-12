@@ -14,6 +14,7 @@ import { LoadingScreen } from '@/components/ui/loading-screen';
 import { StoreGroupsManager } from '@/components/store-groups/StoreGroupsManager';
 import { StoreGroup } from '@/lib/types/store-groups';
 import { MenuInsightsDashboard } from '@/components/menu-insights/MenuInsightsDashboard';
+import { EmergingStoresSection } from '@/components/emerging-stores/EmergingStoresSection';
 import { DataSyncButton } from '@/components/DataSyncButton';
 import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths, subYears } from 'date-fns';
 
@@ -433,6 +434,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Emerging Stores Section */}
+        <EmergingStoresSection storeIds={selectedGroup?.storeIds} />
 
         {/* Time Series Chart */}
         <Card>
