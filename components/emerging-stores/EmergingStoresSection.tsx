@@ -177,27 +177,33 @@ export function EmergingStoresSection({
       <CardContent className="space-y-6">
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-950">
-            <TrendingUp className="h-8 w-8 text-green-600" />
+          <div className="flex items-center gap-4 p-4 rounded-lg border">
+            <div className="p-2.5 rounded-lg bg-muted">
+              <TrendingUp className="h-5 w-5 text-foreground" />
+            </div>
             <div>
               <p className="text-sm text-muted-foreground">급성장 매장</p>
-              <p className="text-2xl font-bold text-green-600">{data.summary.emergingCount}</p>
+              <p className="text-2xl font-semibold">{data.summary.emergingCount}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950">
-            <BarChart3 className="h-8 w-8 text-blue-600" />
+          <div className="flex items-center gap-4 p-4 rounded-lg border">
+            <div className="p-2.5 rounded-lg bg-muted">
+              <BarChart3 className="h-5 w-5 text-foreground" />
+            </div>
             <div>
               <p className="text-sm text-muted-foreground">평균 성장 점수</p>
-              <p className="text-2xl font-bold text-blue-600">{data.summary.averageGrowthScore}</p>
+              <p className="text-2xl font-semibold">{data.summary.averageGrowthScore}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
-            <Store className="h-8 w-8 text-gray-600 dark:text-gray-400" />
+          <div className="flex items-center gap-4 p-4 rounded-lg border">
+            <div className="p-2.5 rounded-lg bg-muted">
+              <Store className="h-5 w-5 text-foreground" />
+            </div>
             <div>
               <p className="text-sm text-muted-foreground">분석 매장</p>
-              <p className="text-2xl font-bold">{data.summary.totalAnalyzed}</p>
+              <p className="text-2xl font-semibold">{data.summary.totalAnalyzed}</p>
             </div>
           </div>
         </div>

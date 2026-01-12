@@ -18,6 +18,10 @@ const GROWTH_WEIGHTS = {
   paidAmount: 0.25, // Paid amount growth: 25%
 };
 
+// Minimum previous GMV to be included in analysis
+// Filters out stores with little/no previous activity to avoid inflated growth rates
+const MIN_PREVIOUS_GMV = 500000; // 50만원
+
 export interface EmergingStoreData {
   storeId: string;
   storeName: string;
@@ -184,6 +188,12 @@ export function getEmergingStoresData(
     const previousOrders = previous?.totalOrders || 0;
     const previousPaidAmount = previous?.totalPaidAmount || 0;
     const previousActiveDays = previous?.activeDays || 0;
+
+    // Filter out stores with insufficient previous activity
+    // This prevents inflated growth rates from stores that were barely used before
+    if (previousGmv < MIN_PREVIOUS_GMV) {
+      continue;
+    }
 
     // Calculate individual growth rates
     const gmvGrowth = calculateGrowthPercentage(recent.totalGmv, previousGmv);
