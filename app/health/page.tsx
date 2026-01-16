@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LoadingScreen } from '@/components/ui/loading-screen';
-import { Activity, Store, AlertTriangle, XCircle, CheckCircle, Search, ArrowUpDown, HelpCircle } from 'lucide-react';
+import { Activity, AlertTriangle, XCircle, CheckCircle, Search, ArrowUpDown, HelpCircle } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -316,63 +316,6 @@ export default function HealthCheckPage() {
           <Button onClick={loadHealthCheck} variant="outline" size="sm" className="flex-shrink-0">
             새로고침
           </Button>
-        </div>
-
-        {/* Summary Cards - Scrollable on mobile */}
-        <div className="flex gap-2 md:gap-4 overflow-x-auto pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:grid md:grid-cols-5 md:overflow-visible">
-          <Card className="flex-shrink-0 w-[120px] md:w-auto">
-            <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
-              <CardTitle className="text-xs md:text-sm font-medium">전체</CardTitle>
-              <Store className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold">{data.summary.total}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="flex-shrink-0 w-[120px] md:w-auto border-green-500/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
-              <CardTitle className="text-xs md:text-sm font-medium text-green-500">활성</CardTitle>
-              <CheckCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-500" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold text-green-500">{data.summary.active}</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground hidden md:block">7일 이내 주문</p>
-            </CardContent>
-          </Card>
-
-          <Card className="flex-shrink-0 w-[120px] md:w-auto border-yellow-500/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
-              <CardTitle className="text-xs md:text-sm font-medium text-yellow-500">주의</CardTitle>
-              <AlertTriangle className="h-3.5 w-3.5 md:h-4 md:w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold text-yellow-500">{data.summary.warning}</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground hidden md:block">8-30일 미주문</p>
-            </CardContent>
-          </Card>
-
-          <Card className="flex-shrink-0 w-[120px] md:w-auto border-orange-500/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
-              <CardTitle className="text-xs md:text-sm font-medium text-orange-500">위험</CardTitle>
-              <AlertTriangle className="h-3.5 w-3.5 md:h-4 md:w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold text-orange-500">{data.summary.danger}</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground hidden md:block">31-90일 미주문</p>
-            </CardContent>
-          </Card>
-
-          <Card className="flex-shrink-0 w-[120px] md:w-auto border-red-500/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
-              <CardTitle className="text-xs md:text-sm font-medium text-red-500">이탈</CardTitle>
-              <XCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-red-500" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold text-red-500">{data.summary.churned}</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground hidden md:block">90일+ 미주문</p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Filters */}
