@@ -14,11 +14,13 @@ const FRANCHISE_ACCOUNTS_PATH = path.join(process.cwd(), 'data', 'franchise-acco
 
 /**
  * Load franchise accounts from JSON file
+ * Returns empty array in production/serverless environments where file system is read-only
  */
 export function loadFranchiseAccounts(): FranchiseAccount[] {
   try {
+    // In serverless environments (like Vercel), file system may be read-only
+    // Return empty array if file doesn't exist
     if (!fs.existsSync(FRANCHISE_ACCOUNTS_PATH)) {
-      console.warn(`Franchise accounts file not found: ${FRANCHISE_ACCOUNTS_PATH}`);
       return [];
     }
 
@@ -27,13 +29,15 @@ export function loadFranchiseAccounts(): FranchiseAccount[] {
 
     return accounts; // Return all accounts, not just active ones
   } catch (error) {
-    console.error('Failed to load franchise accounts:', error);
+    // Silent fail in production - just return empty array
+    console.warn('Could not load franchise accounts:', error);
     return [];
   }
 }
 
 /**
  * Save franchise accounts to JSON file
+ * May fail in serverless environments - catches error gracefully
  */
 export function saveFranchiseAccounts(accounts: FranchiseAccount[]): void {
   try {
@@ -48,8 +52,8 @@ export function saveFranchiseAccounts(accounts: FranchiseAccount[]): void {
       'utf-8'
     );
   } catch (error) {
-    console.error('Failed to save franchise accounts:', error);
-    throw new Error('Failed to save franchise accounts');
+    console.error('Failed to save franchise accounts (this is expected in serverless environments):', error);
+    throw new Error('File system operations not available in this environment. Please use a database for franchise accounts.');
   }
 }
 
