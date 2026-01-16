@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Activity, Search, RefreshCw, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Activity, Search, RefreshCw, LogOut, Menu, X, Building2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,12 @@ const mainNavItems = [
     label: 'Dashboard',
     icon: LayoutDashboard,
     roles: ['master', 'franchise'], // Available to all
+  },
+  {
+    href: '/brands',
+    label: '브랜드 관리',
+    icon: Building2,
+    roles: ['master'], // Master only
   },
   {
     href: '/health',

@@ -15,7 +15,7 @@ const FRANCHISE_ACCOUNTS_PATH = process.env.FRANCHISE_ACCOUNTS_PATH || path.join
 /**
  * Load franchise accounts from JSON file
  */
-function loadFranchiseAccounts(): FranchiseAccount[] {
+export function loadFranchiseAccounts(): FranchiseAccount[] {
   try {
     if (!fs.existsSync(FRANCHISE_ACCOUNTS_PATH)) {
       console.warn(`Franchise accounts file not found: ${FRANCHISE_ACCOUNTS_PATH}`);
@@ -25,11 +25,31 @@ function loadFranchiseAccounts(): FranchiseAccount[] {
     const fileContent = fs.readFileSync(FRANCHISE_ACCOUNTS_PATH, 'utf-8');
     const accounts = JSON.parse(fileContent) as FranchiseAccount[];
 
-    // Filter active accounts only
-    return accounts.filter(account => account.isActive);
+    return accounts; // Return all accounts, not just active ones
   } catch (error) {
     console.error('Failed to load franchise accounts:', error);
     return [];
+  }
+}
+
+/**
+ * Save franchise accounts to JSON file
+ */
+export function saveFranchiseAccounts(accounts: FranchiseAccount[]): void {
+  try {
+    const dirPath = path.dirname(FRANCHISE_ACCOUNTS_PATH);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+
+    fs.writeFileSync(
+      FRANCHISE_ACCOUNTS_PATH,
+      JSON.stringify(accounts, null, 2),
+      'utf-8'
+    );
+  } catch (error) {
+    console.error('Failed to save franchise accounts:', error);
+    throw new Error('Failed to save franchise accounts');
   }
 }
 
@@ -53,9 +73,9 @@ export async function validateCredentials(
     }
   }
 
-  // Check Franchise accounts
+  // Check Franchise accounts (only active ones for login)
   const franchiseAccounts = loadFranchiseAccounts();
-  const account = franchiseAccounts.find(acc => acc.username === username);
+  const account = franchiseAccounts.find(acc => acc.username === username && acc.isActive);
 
   if (!account) {
     return null;
