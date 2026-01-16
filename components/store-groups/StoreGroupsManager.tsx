@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { GroupCreateDialog } from './GroupCreateDialog';
 import { GroupEditDialog } from './GroupEditDialog';
 import { SavedGroupsTags } from './SavedGroupsTags';
 import { StoreGroup } from '@/lib/types/store-groups';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface StoreGroupsManagerProps {
   selectedGroupId?: string;
@@ -17,11 +18,35 @@ interface StoreGroupsManagerProps {
 }
 
 export function StoreGroupsManager({ selectedGroupId, onGroupSelected }: StoreGroupsManagerProps) {
+  const { session } = useAuth();
   const { groups, createGroup, updateGroup, deleteGroup, isLoaded } = useStoreGroups();
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StoreGroup | null>(null);
+
+  // Auto-create franchise group on mount
+  useEffect(() => {
+    if (!isLoaded || !session) return;
+
+    // Franchise account: auto-create group with assigned stores
+    if (session.role === 'franchise' && session.assignedStoreIds && session.assignedStoreIds.length > 0) {
+      const franchiseGroupName = `${session.displayName} (${session.assignedStoreIds.length}개 매장)`;
+
+      // Check if franchise group already exists
+      const existingGroup = groups.find(g => g.name === franchiseGroupName);
+
+      if (!existingGroup) {
+        // Create franchise group
+        const newGroup = createGroup(franchiseGroupName, session.assignedStoreIds);
+        // Auto-select the franchise group
+        onGroupSelected(newGroup);
+      } else {
+        // Auto-select existing franchise group
+        onGroupSelected(existingGroup);
+      }
+    }
+  }, [isLoaded, session, groups, createGroup, onGroupSelected]);
 
   const handleCreateGroup = (name: string) => {
     const newGroup = createGroup(name, selectedStoreIds);
