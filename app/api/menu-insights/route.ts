@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   getMenuRankings,
   getRevenueContribution,
@@ -6,17 +6,20 @@ import {
   getCrossSellingPairs,
 } from '@/lib/queries/menu-insights';
 import { MenuInsightType, MenuInsightFilter } from '@/lib/types/menu-insights';
+import { withAuth } from '@/lib/auth/middleware';
+import { enforceStoreAccess } from '@/lib/auth/access-control';
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
+export async function GET(request: NextRequest) {
+  return withAuth(request, async (session) => {
+    try {
+      const { searchParams } = new URL(request.url);
 
-    const type = searchParams.get('type') as MenuInsightType;
-    const startDateParam = searchParams.get('startDate');
-    const endDateParam = searchParams.get('endDate');
-    const storeIdsParam = searchParams.get('storeIds');
-    const menuName = searchParams.get('menuName') || undefined;
-    const limitParam = searchParams.get('limit');
+      const type = searchParams.get('type') as MenuInsightType;
+      const startDateParam = searchParams.get('startDate');
+      const endDateParam = searchParams.get('endDate');
+      const storeIdsParam = searchParams.get('storeIds');
+      const menuName = searchParams.get('menuName') || undefined;
+      const limitParam = searchParams.get('limit');
 
     console.log('[menu-insights API]', {
       type,
@@ -43,7 +46,11 @@ export async function GET(request: Request) {
 
     const startDate = new Date(startDateParam);
     const endDate = new Date(endDateParam);
-    const storeIds = storeIdsParam ? storeIdsParam.split(',').filter(Boolean) : undefined;
+    const requestedStoreIds = storeIdsParam ? storeIdsParam.split(',').filter(Boolean) : undefined;
+
+    // Enforce store access control
+    const storeIds = enforceStoreAccess(session, requestedStoreIds);
+
     const limit = limitParam ? parseInt(limitParam) : 10;
 
     const filter: MenuInsightFilter = {
@@ -82,11 +89,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data });
 
-  } catch (error: any) {
-    console.error('Menu insights error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
-  }
+    } catch (error: any) {
+      console.error('Menu insights error:', error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
+      );
+    }
+  });
 }

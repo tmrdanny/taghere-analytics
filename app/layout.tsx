@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/theme-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AuthLayout } from "@/components/auth-layout";
+import { AuthProvider } from "@/components/auth/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,12 +33,14 @@ export default function RootLayout({
       >
         <div className="aurora-bg" aria-hidden="true" />
         <Providers>
-          <AuthLayout>
-            <Sidebar />
-            <main className="md:pl-60 min-h-screen w-full max-w-full">
-              {children}
-            </main>
-          </AuthLayout>
+          <AuthProvider>
+            <AuthLayout>
+              <Sidebar />
+              <main className="md:pl-60 min-h-screen w-full max-w-full">
+                {children}
+              </main>
+            </AuthLayout>
+          </AuthProvider>
         </Providers>
       </body>
     </html>

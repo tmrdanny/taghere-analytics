@@ -6,15 +6,20 @@ import {
   listCollections,
 } from '@/lib/schema-explorer';
 import { getDb } from '@/lib/mongodb';
+import { withMasterOnly } from '@/lib/auth/middleware';
 
 /**
  * GET /api/explore
+ *
+ * Master-only endpoint
+ *
  * Query params:
  *   - action: 'list' | 'explore-all' | 'explore-one'
  *   - collection: collection name (for explore-one)
  *   - sampleSize: number of documents to sample (default: 20)
  */
 export async function GET(request: NextRequest) {
+  return withMasterOnly(request, async () => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const action = searchParams.get('action') || 'list';
@@ -119,4 +124,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

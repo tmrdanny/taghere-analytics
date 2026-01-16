@@ -3,6 +3,8 @@ import { getCachedDashboardKPIs } from '@/lib/cache/aggregation-cache';
 import { MetricsFilter } from '@/lib/types/metrics';
 import cache, { generateCacheKey, getDefaultTTL } from '@/lib/cache';
 import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths, subYears } from 'date-fns';
+import { withAuth } from '@/lib/auth/middleware';
+import { enforceStoreAccess } from '@/lib/auth/access-control';
 
 /**
  * Parse date range preset or custom dates
@@ -104,28 +106,32 @@ function parseDateRange(searchParams: URLSearchParams): {
  *   - limit: number of items in top lists (default: 10)
  */
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
+  return withAuth(request, async (session) => {
+    try {
+      const searchParams = request.nextUrl.searchParams;
 
-    // Parse date range
-    const { startDate, endDate } = parseDateRange(searchParams);
+      // Parse date range
+      const { startDate, endDate } = parseDateRange(searchParams);
 
-    // Parse store IDs
-    const storeIdsParam = searchParams.get('storeIds');
-    const storeIds = storeIdsParam
-      ? storeIdsParam.split(',').map((id) => id.trim())
-      : undefined;
+      // Parse store IDs
+      const storeIdsParam = searchParams.get('storeIds');
+      const requestedStoreIds = storeIdsParam
+        ? storeIdsParam.split(',').map((id) => id.trim())
+        : undefined;
 
-    // Parse limit
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
+      // Enforce store access control
+      const storeIds = enforceStoreAccess(session, requestedStoreIds);
 
-    // Build filter
-    const filter: MetricsFilter = {
-      startDate,
-      endDate,
-      storeIds,
-      limit,
-    };
+      // Parse limit
+      const limit = parseInt(searchParams.get('limit') || '10', 10);
+
+      // Build filter
+      const filter: MetricsFilter = {
+        startDate,
+        endDate,
+        storeIds,
+        limit,
+      };
 
     // Generate cache key
     const cacheKey = generateCacheKey('dashboard', {
@@ -168,14 +174,15 @@ export async function GET(request: NextRequest) {
         limit,
       },
     });
-  } catch (error: any) {
-    console.error('Dashboard API error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-      },
-      { status: 500 }
-    );
-  }
+    } catch (error: any) {
+      console.error('Dashboard API error:', error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+        },
+        { status: 500 }
+      );
+    }
+  });
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEmergingStoresData } from '@/lib/queries/emerging-stores';
 import cache, { generateCacheKey } from '@/lib/cache';
+import { withAuth } from '@/lib/auth/middleware';
+import { enforceStoreAccess } from '@/lib/auth/access-control';
 
 /**
  * GET /api/emerging-stores
@@ -13,21 +15,25 @@ import cache, { generateCacheKey } from '@/lib/cache';
  *   - storeIds: comma-separated store IDs (optional)
  */
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
+  return withAuth(request, async (session) => {
+    try {
+      const searchParams = request.nextUrl.searchParams;
 
-    // Parse parameters
-    const recentDays = parseInt(searchParams.get('recentDays') || '7', 10);
-    const compareDays = parseInt(searchParams.get('compareDays') || '7', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
-    const minGrowthScoreParam = searchParams.get('minGrowthScore');
-    const minGrowthScore = minGrowthScoreParam ? parseFloat(minGrowthScoreParam) : null;
+      // Parse parameters
+      const recentDays = parseInt(searchParams.get('recentDays') || '7', 10);
+      const compareDays = parseInt(searchParams.get('compareDays') || '7', 10);
+      const limit = parseInt(searchParams.get('limit') || '20', 10);
+      const minGrowthScoreParam = searchParams.get('minGrowthScore');
+      const minGrowthScore = minGrowthScoreParam ? parseFloat(minGrowthScoreParam) : null;
 
-    // Parse store IDs
-    const storeIdsParam = searchParams.get('storeIds');
-    const storeIds = storeIdsParam
-      ? storeIdsParam.split(',').map(id => id.trim()).filter(Boolean)
-      : undefined;
+      // Parse store IDs
+      const storeIdsParam = searchParams.get('storeIds');
+      const requestedStoreIds = storeIdsParam
+        ? storeIdsParam.split(',').map(id => id.trim()).filter(Boolean)
+        : undefined;
+
+      // Enforce store access control
+      const storeIds = enforceStoreAccess(session, requestedStoreIds);
 
     // Generate cache key (cache for 5 minutes)
     const cacheKey = generateCacheKey('emerging-stores', {
@@ -82,14 +88,15 @@ export async function GET(request: NextRequest) {
       ...response,
       cached: false,
     });
-  } catch (error: any) {
-    console.error('Emerging Stores API error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-      },
-      { status: 500 }
-    );
-  }
+    } catch (error: any) {
+      console.error('Emerging Stores API error:', error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+        },
+        { status: 500 }
+      );
+    }
+  });
 }

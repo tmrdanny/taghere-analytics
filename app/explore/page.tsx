@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, Search, Table, UtensilsCrossed } from 'lucide-react';
 import { MenuStoreSearch } from '@/components/menu-search/MenuStoreSearch';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface CollectionSchema {
   name: string;
@@ -22,17 +24,32 @@ interface CollectionSchema {
 }
 
 export default function ExplorePage() {
+  const router = useRouter();
+  const { session, loading: authLoading } = useAuth();
   const [collections, setCollections] = useState<string[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
   const [schema, setSchema] = useState<CollectionSchema | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Access control: Master only
+  useEffect(() => {
+    if (!authLoading && session?.role !== 'master') {
+      router.push('/');
+    }
+  }, [session, authLoading, router]);
+
   const loadCollections = async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/explore?action=list');
+
+      if (!response.ok && response.status === 403) {
+        router.push('/');
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {

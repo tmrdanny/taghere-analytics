@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface LoginModalProps {
   onLogin: () => void;
@@ -15,9 +16,7 @@ export function LoginModal({ onLogin }: LoginModalProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
-
-  const VALID_USERNAME = 'taghere';
-  const VALID_PASSWORD = '0614';
+  const { login } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -28,18 +27,19 @@ export function LoginModal({ onLogin }: LoginModalProps) {
     setError('');
     setIsLoading(true);
 
-    // Simulate delay for security feel
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const result = await login(username, password);
 
-    if (username === VALID_USERNAME && password === VALID_PASSWORD) {
-      localStorage.setItem('taghere_auth', 'true');
-      localStorage.setItem('taghere_timestamp', Date.now().toString());
-      onLogin();
-    } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      if (result.success) {
+        onLogin();
+      } else {
+        setError(result.error || '아이디 또는 비밀번호가 올바르지 않습니다.');
+      }
+    } catch (err) {
+      setError('로그인 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

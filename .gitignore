@@ -44,3 +44,7 @@ next-env.d.ts
 # SQLite Cache
 data/
 !data/.gitkeep
+!data/franchise-accounts.example.json
+
+# Franchise Accounts (sensitive data)
+data/franchise-accounts.json

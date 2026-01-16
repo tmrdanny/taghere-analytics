@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getHealthCheckData, HealthStatus } from '@/lib/queries/health-check';
 import cache, { generateCacheKey } from '@/lib/cache';
+import { withMasterOnly } from '@/lib/auth/middleware';
 
 /**
  * GET /api/health-check
+ *
+ * Master-only endpoint
  *
  * Query params:
  *   - status: 'active' | 'warning' | 'danger' | 'churned' (optional, filter by status)
  *   - limit: number of stores to return (default: 100)
  */
 export async function GET(request: NextRequest) {
+  return withMasterOnly(request, async () => {
   try {
     const searchParams = request.nextUrl.searchParams;
 
@@ -71,4 +75,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

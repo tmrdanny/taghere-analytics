@@ -11,22 +11,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle, Database, Cloud, HardDrive } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthContext';
 
 const mainNavItems = [
   {
     href: '/',
     label: 'Dashboard',
     icon: LayoutDashboard,
+    roles: ['master', 'franchise'], // Available to all
   },
   {
     href: '/health',
     label: 'Health Check',
     icon: Activity,
+    roles: ['master'], // Master only
   },
   {
     href: '/explore',
     label: 'Explore',
     icon: Search,
+    roles: ['master'], // Master only
   },
 ];
 
@@ -41,6 +45,7 @@ const syncSteps = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { session, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -87,10 +92,9 @@ export function Sidebar() {
     }
   }, [isLoading, result]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoggingOut(true);
-    localStorage.removeItem('taghere_auth');
-    localStorage.removeItem('taghere_timestamp');
+    await logout();
     router.refresh();
   };
 
@@ -216,21 +220,23 @@ export function Sidebar() {
 
         {/* Main navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {mainNavItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
+          {mainNavItems
+            .filter((item) => session && item.roles.includes(session.role))
+            .map((item) => {
+              const isActive = pathname === item.href;
+              const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
-                )}
-              >
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative',
+                    isActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
+                  )}
+                >
                 {/* Active indicator bar */}
                 {isActive && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
@@ -244,17 +250,19 @@ export function Sidebar() {
 
         {/* Utility section */}
         <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
-          {/* Data Sync Button */}
-          <button
-            onClick={() => setIsSyncOpen(true)}
-            className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
-            )}
-          >
-            <RefreshCw className="h-5 w-5 flex-shrink-0" />
-            <span>데이터 동기화</span>
-          </button>
+          {/* Data Sync Button - Master only */}
+          {session?.role === 'master' && (
+            <button
+              onClick={() => setIsSyncOpen(true)}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
+              )}
+            >
+              <RefreshCw className="h-5 w-5 flex-shrink-0" />
+              <span>데이터 동기화</span>
+            </button>
+          )}
 
           {/* Logout Button */}
           <button

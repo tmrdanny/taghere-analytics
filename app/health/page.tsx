@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface StoreHealth {
   storeId: string;
@@ -67,6 +69,8 @@ const statusConfig = {
 };
 
 export default function HealthCheckPage() {
+  const router = useRouter();
+  const { session, loading: authLoading } = useAuth();
   const [data, setData] = useState<HealthCheckData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +78,13 @@ export default function HealthCheckPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('healthScore');
   const [sortAsc, setSortAsc] = useState(true);
+
+  // Access control: Master only
+  useEffect(() => {
+    if (!authLoading && session?.role !== 'master') {
+      router.push('/');
+    }
+  }, [session, authLoading, router]);
 
   const loadHealthCheck = async () => {
     setLoading(true);
@@ -83,6 +94,10 @@ export default function HealthCheckPage() {
       const response = await fetch('/api/health-check?limit=2000');
 
       if (!response.ok) {
+        if (response.status === 403) {
+          router.push('/');
+          return;
+        }
         throw new Error(`Server error (${response.status})`);
       }
 
