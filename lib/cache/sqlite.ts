@@ -371,6 +371,35 @@ export function getStoreNames(storeIds: string[]): Map<string, string> {
 }
 
 /**
+ * Get all stores from the database
+ * Returns a Map of storeId -> storeName
+ */
+export function getAllStores(): Map<string, string> {
+  const db = getDb();
+  const storeNames = new Map<string, string>();
+
+  // Build exclusion clause for test stores
+  const excludePlaceholders = EXCLUDED_STORE_NAMES.map(() => '?').join(',');
+
+  const sql = `
+    SELECT DISTINCT storeId, storeName
+    FROM metrics_daily_store
+    WHERE storeName NOT IN (${excludePlaceholders})
+    ORDER BY storeName ASC
+  `;
+
+  const rows = db.prepare(sql).all(...EXCLUDED_STORE_NAMES) as Array<{ storeId: string; storeName: string }>;
+
+  for (const row of rows) {
+    if (row.storeName && row.storeName !== 'Unknown Store') {
+      storeNames.set(row.storeId, row.storeName);
+    }
+  }
+
+  return storeNames;
+}
+
+/**
  * Update cache metadata with current timestamp for a date
  */
 export function updateCacheMetadata(date: string): void {

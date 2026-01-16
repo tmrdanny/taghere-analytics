@@ -1,30 +1,31 @@
 import { NextResponse } from 'next/server';
-import { getStoreNames } from '@/lib/cache/sqlite';
+import { getStoreNames, getAllStores } from '@/lib/cache/sqlite';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const storeIdsParam = searchParams.get('storeIds');
 
+    let storeNamesMap: Map<string, string>;
+
     if (!storeIdsParam) {
-      return NextResponse.json(
-        { success: false, error: 'storeIds parameter is required' },
-        { status: 400 }
-      );
+      // If no storeIds provided, return all stores
+      storeNamesMap = getAllStores();
+    } else {
+      // If storeIds provided, return only those stores
+      const storeIds = storeIdsParam.split(',').filter(Boolean);
+      storeNamesMap = getStoreNames(storeIds);
     }
 
-    const storeIds = storeIdsParam.split(',').filter(Boolean);
-    const storeNamesMap = getStoreNames(storeIds);
-
-    // Convert Map to object for JSON response
-    const storeNames: Record<string, string> = {};
-    for (const [id, name] of storeNamesMap) {
-      storeNames[id] = name;
-    }
+    // Convert Map to array of {_id, name} objects
+    const stores = Array.from(storeNamesMap.entries()).map(([id, name]) => ({
+      _id: id,
+      name,
+    }));
 
     return NextResponse.json({
       success: true,
-      storeNames,
+      stores,
     });
   } catch (error: any) {
     console.error('Store names fetch error:', error);

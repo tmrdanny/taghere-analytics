@@ -22,7 +22,7 @@ const mainNavItems = [
   },
   {
     href: '/brands',
-    label: '브랜드 관리',
+    label: 'Manage Franchise',
     icon: Building2,
     roles: ['master'], // Master only
   },
