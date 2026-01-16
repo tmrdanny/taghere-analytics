@@ -8,9 +8,9 @@ import fs from 'fs';
 import path from 'path';
 import { FranchiseAccount, AuthSession } from '@/lib/types/auth';
 
-const MASTER_USERNAME = process.env.MASTER_USERNAME || 'taghere';
-const MASTER_PASSWORD = process.env.MASTER_PASSWORD || '$2b$10$K7eP6wXQZ4L3kH8vN9qZEuXxJGZ0Qz3Y5fQ6wR7tY8uV9pW0xA1B2'; // default: '0614'
-const FRANCHISE_ACCOUNTS_PATH = process.env.FRANCHISE_ACCOUNTS_PATH || path.join(process.cwd(), 'data', 'franchise-accounts.json');
+const MASTER_USERNAME = 'taghere';
+const MASTER_PASSWORD = '$2b$10$WrZUscgInenASqOoH81bhOeH0S3VBHUaivPL023pgzSsxn4Hx60wC'; // bcrypt hash for '0614'
+const FRANCHISE_ACCOUNTS_PATH = path.join(process.cwd(), 'data', 'franchise-accounts.json');
 
 /**
  * Load franchise accounts from JSON file
